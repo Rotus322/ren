@@ -1,5 +1,6 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import japanize_matplotlib
 
 st.title("1日の予定")
 
