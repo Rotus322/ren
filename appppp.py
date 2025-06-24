@@ -34,8 +34,4 @@ if st.button("円グラフを作成"):
 
         st.pyplot(fig)
 
-        # 保存機能
-        fig.savefig("today_schedule.png")
-        st.success("グラフを today_schedule.png に保存しました。")
-    else:
-        st.warning("予定が入力されていません。")
+       
