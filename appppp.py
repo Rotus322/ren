@@ -1,6 +1,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib_fontja
+import numpy as np
 
 st.title("1日の予定")
 
@@ -31,7 +32,11 @@ if st.button("円グラフを作成"):
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(aspect="equal"))
         ax.pie(sizes, labels=labels, startangle=90, counterclock=False)
         ax.set_title("あなたの1日（24時間円グラフ）")
-
+        for hour in range(24):
+             angle = np.deg2rad(90 - hour * 15)  # 1時間＝15度、上が0度
+             x = 1.2 * np.cos(angle)
+             y = 1.2 * np.sin(angle)
+             ax.text(x, y, str(hour), ha='center', va='center', fontsize=8, color='gray')
         st.pyplot(fig)
 
        
