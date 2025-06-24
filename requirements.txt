@@ -1,3 +1,3 @@
 streamlit
 matplotlib
-matplotlib fontja
+matplotlib_fontja
