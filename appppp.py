@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, time, date
 import matplotlib_fontja
 from matplotlib.patches import Wedge
+import numpy as np
 
 def plot_circular_schedule(df_user, user_name):
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
