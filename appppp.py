@@ -160,7 +160,7 @@ def plot_user_schedule(df, user_name, selected_date):
             y0 = radius * 0.8 * np.sin(np.radians(theta))
             x1 = radius * 1.0 * np.cos(np.radians(theta))
             y1 = radius * 1.0 * np.sin(np.radians(theta))
-            ax.plot([x0, x1-0.05], [y0, y1-0.05], color="black", linewidth=0.8)
+            ax.plot([x0, x1], [y0, y1], color="black", linewidth=0.8)
             ax.text(x1, y1, label, ha="center", va="center", fontsize=8, color="black")
 
         angle -= dur / total * 360  # 次の扇へ
