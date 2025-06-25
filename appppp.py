@@ -10,12 +10,12 @@ def plot_circular_schedule(df_user, user_name):
     import matplotlib.colors as mcolors
     import itertools
     import random
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
+    fig, ax = plt.subplots(figsize=(7, 7), subplot_kw={'aspect': 'equal'})
     ax.set_xlim(-1.6, 1.6)
     ax.set_ylim(-1.6, 1.6)
     ax.axis('off')
 
-    # 使いやすく視認性の高いカラーを選択
+    # 明るめのカラーセットを使用
     color_pool = [
         "#FF6F61", "#6B5B95", "#88B04B", "#F7CAC9", "#92A8D1",
         "#955251", "#B565A7", "#009B77", "#DD4124", "#45B8AC",
@@ -45,7 +45,7 @@ def plot_circular_schedule(df_user, user_name):
             color = "white"
         else:
             if content not in color_map:
-                color_map[content] = next(color_iter, "#CCCCCC")  # fallback color
+                color_map[content] = next(color_iter, "#CCCCCC")
             color = color_map[content]
 
         # 予定ブロック
@@ -58,25 +58,27 @@ def plot_circular_schedule(df_user, user_name):
         ax.plot([0, np.cos(rad)], [0, np.sin(rad)], color='black', linewidth=1)
 
         # 開始時刻ラベル（近め）
-        x_label = 1.02 * np.cos(rad)
-        y_label = 1.02 * np.sin(rad)
+        x_label = 1.07 * np.cos(rad)
+        y_label = 1.07 * np.sin(rad)
         ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7, color='black')
 
         if content != "" and content.lower() != "nan":
             mid_angle = (start_angle + end_angle) / 2
             mid_rad = np.radians(mid_angle)
-            x_mid = 0.7 * np.cos(mid_rad)
-            y_mid = 0.7 * np.sin(mid_rad)
 
             if duration <= 1:
-                # 外ラベル用線（重ならないよう距離を外へ）
-                x_outer = 1.4 * np.cos(mid_rad)
-                y_outer = 1.4 * np.sin(mid_rad)
-                ax.plot([x_mid, x_outer], [y_mid, y_outer], color='black', linewidth=0.8)
+                # 外ラベル（線は扇の中点から外へ）
+                x_inner = 0.6 * np.cos(mid_rad)
+                y_inner = 0.6 * np.sin(mid_rad)
+                x_outer = 1.35 * np.cos(mid_rad)
+                y_outer = 1.35 * np.sin(mid_rad)
+                ax.plot([x_inner, x_outer], [y_inner, y_outer], color='black', linewidth=0.8)
                 ax.text(x_outer, y_outer, content, ha='center', va='center', fontsize=8, color='black')
             else:
-                # 内ラベル
-                ax.text(x_mid, y_mid, content, ha='center', va='center', fontsize=8, color='black')
+                # 内ラベル（少し内側）
+                x = 0.55 * np.cos(mid_rad)
+                y = 0.55 * np.sin(mid_rad)
+                ax.text(x, y, content, ha='center', va='center', fontsize=8, color='black')
 
     ax.set_title(f"{user_name} の予定（0時が真上）", fontsize=12)
     st.pyplot(fig)
