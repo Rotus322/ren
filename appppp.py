@@ -10,24 +10,25 @@ def plot_circular_schedule(df_user, user_name):
     import matplotlib.colors as mcolors
     import itertools
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
-    ax.set_xlim(-1.2, 1.2)
-    ax.set_ylim(-1.2, 1.2)
+    ax.set_xlim(-1.3, 1.3)
+    ax.set_ylim(-1.3, 1.3)
     ax.axis('off')
 
-    # ▶ 色設定（TABLEAU_COLORSを1人分で事前に確定）
-    base_colors = list(mcolors.TABLEAU_COLORS.values())
-    user_colors = itertools.cycle(base_colors)  # ←これを1回限りループで使う
-    assigned_colors = []
+    # カテゴリ別カラー辞書（足りなければ増やせます）
+    category_colors = {
+        'ごはん': 'orange',
+        '勉強': 'skyblue',
+        '就寝': 'lightgray',
+        '移動': 'lightgreen',
+        '入浴': 'plum',
+        '電話': 'khaki',
+        '自由': 'salmon'
+    }
+    default_colors = list(mcolors.TABLEAU_COLORS.values())
+    fallback_colors = itertools.cycle(default_colors)
 
     for idx, row in df_user.iterrows():
         content = row["内容"].strip()
-        # 色割り当て（空白は白、それ以外は次の色）
-        if content == "":
-            assigned_colors.append("white")
-        else:
-            assigned_colors.append(next(user_colors))
-
-    for idx, row in df_user.iterrows():
         start = datetime.strptime(row["開始"], "%H:%M")
         end = datetime.strptime(row["終了"], "%H:%M")
         start_hour = start.hour + start.minute / 60
@@ -41,38 +42,40 @@ def plot_circular_schedule(df_user, user_name):
         if end_angle > start_angle:
             end_angle -= 360
 
-        color = assigned_colors[idx]
+        # カテゴリ色を優先、無ければ順に割り当て
+        color = category_colors.get(content, next(fallback_colors)) if content != "" else "white"
 
-        # 🌈 扇形の描画
+        # 予定のブロック
         wedge = Wedge((0, 0), 1.0, theta1=start_angle, theta2=end_angle,
                       facecolor=color, edgecolor='black', linewidth=1.2)
         ax.add_patch(wedge)
 
-        # 🕛 黒線（開始時刻）
+        # 開始線（外周の外まで）
         rad = np.radians(start_angle)
-        ax.plot([0, np.cos(rad)], [0, np.sin(rad)], color='black', linewidth=1)
+        x0, y0 = 0, 0
+        x1, y1 = 1.25 * np.cos(rad), 1.25 * np.sin(rad)
+        ax.plot([x0, x1], [y0, y1], color='black', linewidth=1)
 
-        # ⏱ 開始時刻ラベル
-        x_label = 1.1 * np.cos(rad)
-        y_label = 1.1 * np.sin(rad)
+        # 開始時刻の外周ラベル
+        x_label = 1.35 * np.cos(rad)
+        y_label = 1.35 * np.sin(rad)
         ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7)
 
-        # 📝 内容ラベル（1時間未満なら外側に表示）
-        content = row["内容"].strip()
+        # 内容ラベル
         if content != "":
             mid_angle = (start_angle + end_angle) / 2
             mid_rad = np.radians(mid_angle)
-            radius = 0.65 if duration >= 1 else 1.15  # ←ここで内外切り替え
+            radius = 0.65 if duration >= 1 else 1.2  # 1時間未満は外に
             x = radius * np.cos(mid_rad)
             y = radius * np.sin(mid_rad)
             ax.text(x, y, content, ha='center', va='center', fontsize=8)
 
-    # ⏲ 外周目盛り（0〜23）
+    # 0〜23時の外周目盛り
     for h in range(24):
         angle = (90 - h / 24 * 360) % 360
         rad = np.radians(angle)
-        x = 1.02 * np.cos(rad)
-        y = 1.02 * np.sin(rad)
+        x = 1.05 * np.cos(rad)
+        y = 1.05 * np.sin(rad)
         ax.text(x, y, f"{h}", ha='center', va='center', fontsize=6.5, color='gray')
 
     ax.set_title(f"{user_name} の予定（0時が真上）", fontsize=12)
