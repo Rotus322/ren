@@ -102,7 +102,6 @@ def plot_user_schedule(df, user_name, selected_date):
 
         # 空き時間
         if start > current_time:
-            labels.append("（空き時間）")
             sizes.append(start - current_time)
             colors.append("lightgray")
             time_marks.append(start)
