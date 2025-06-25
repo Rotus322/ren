@@ -175,12 +175,16 @@ def plot_user_schedule(df, user_name, selected_date):
         x = 1.35 * np.cos(np.radians(angle_h))
         y = 1.35 * np.sin(np.radians(angle_h))
 
-        if abs(h_rounded - 24.0) < 1e-2:
-            label = "00:00"
-        else:
-            hour = int(h_rounded)
-            minute = int(round((h_rounded % 1) * 60))
-            label = f"{hour:02d}:{minute:02d}"
+        if abs(h - 24.0) < 1e-2:
+            h = 0.0
+
+        angle_h = 90 - (h / 24) * 360
+        x = 1.35 * np.cos(np.radians(angle_h))
+        y = 1.35 * np.sin(np.radians(angle_h))
+
+        hour = int(h)
+        minute = int(round((h % 1) * 60))
+        label = f"{hour:02d}:{minute:02d}"
 
         ax.text(x, y, label, ha="center", va="center", fontsize=6)
 
