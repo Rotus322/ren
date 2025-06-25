@@ -16,7 +16,7 @@ def add_schedule():
 # ---------- 提出フォーム ----------
 st.header("📩 予定を提出")
 
-name = st.selectbox("名前を選んでください", ["郡司島", "ゆみ"])
+name = st.selectbox("名前を選んでください", ["れん", "ゆみ"])
 selected_date = st.date_input("予定の日付", value=date.today())
 
 st.write("📝 時間と内容を指定してください")
@@ -102,8 +102,8 @@ try:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("🧑 郡司島")
-        plot_user_schedule(df, "郡司島", view_date)
+        st.subheader("🧑 れん")
+        plot_user_schedule(df, "れん", view_date)
     with col2:
         st.subheader("👩 ゆみ")
         plot_user_schedule(df, "ゆみ", view_date)
