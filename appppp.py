@@ -108,7 +108,7 @@ def plot_user_schedule(df, user_name, selected_date):
             raw_labels.append("（空き）")
             sizes.append(start - current_time)
             colors.append("lightgray")
-             time_points.append(current_time)
+            time_points.append(current_time)
             time_points.append(start)
 
         # 予定本体
