@@ -2,40 +2,9 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, time, date
-import matplotlib_fontja
-from matplotlib.patches import Wedge
-import numpy as np
 
-def plot_user_schedule(df, user_name, selected_date):
-    df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
-    if df_user.empty:
-        st.warning(f"{user_name} の予定が見つかりませんでした。")
-        return
-
-    labels = []
-    sizes = []
-
-    for _, row in df_user.iterrows():
-        start = datetime.strptime(row["開始"], "%H:%M")
-        end = datetime.strptime(row["終了"], "%H:%M")
-        duration = (end - start).seconds / 3600
-        if duration <= 0:
-            continue
-
-        labels.append(f'{row["内容"]} ({row["開始"]}-{row["終了"]})')
-        sizes.append(duration)
-
-    fig, ax = plt.subplots(figsize=(5, 5))
-    ax.pie(sizes, labels=labels, startangle=90, counterclock=False)
-    ax.set_title(f"{user_name} の予定")
-    st.pyplot(fig)
-
-
-
-
-
-st.set_page_config(page_title="予定提出アプリ", layout="centered")
-st.title("🗓️ 予定提出アプリ")
+st.set_page_config(page_title="予定提出＆可視化アプリ", layout="centered")
+st.title("🗓️ みんなの予定提出＆可視化アプリ")
 
 # --- 初期設定 ---
 if "schedule_count" not in st.session_state:
@@ -47,7 +16,7 @@ def add_schedule():
 # ---------- 提出フォーム ----------
 st.header("📩 予定を提出")
 
-name = st.selectbox("名前を選んでください", ["れん", "ゆみ"])
+name = st.selectbox("名前を選んでください", ["郡司島", "ゆみ"])
 selected_date = st.date_input("予定の日付", value=date.today())
 
 st.write("📝 時間と内容を指定してください")
@@ -125,7 +94,7 @@ def plot_user_schedule(df, user_name, selected_date):
     ax.set_title(f"{user_name} の予定")
     st.pyplot(fig)
 
-st.header("📊 円グラフ予定")
+st.header("📊 円グラフで予定を比較")
 view_date = st.date_input("表示する日付を選択", value=date.today(), key="view_date")
 
 try:
@@ -133,13 +102,11 @@ try:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("🧑 れん")
-        df_g = df[(df["名前"] == "れん") & (df["日付"] == view_date.strftime("%Y-%m-%d"))]
-        plot_circular_schedule(df_g, "れん")
+        st.subheader("🧑 郡司島")
+        plot_user_schedule(df, "郡司島", view_date)
     with col2:
         st.subheader("👩 ゆみ")
-        df_g = df[(df["名前"] == "ゆみ") & (df["日付"] == view_date.strftime("%Y-%m-%d"))]
-        plot_circular_schedule(df_g, "ゆみ")
+        plot_user_schedule(df, "ゆみ", view_date)
 
 except FileNotFoundError:
     st.info("まだ誰も予定を提出していません。")
