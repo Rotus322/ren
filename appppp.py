@@ -6,43 +6,29 @@ import matplotlib_fontja
 from matplotlib.patches import Wedge
 import numpy as np
 
-def plot_circular_schedule(df_user, user_name):
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
-    ax.set_xlim(-1.1, 1.1)
-    ax.set_ylim(-1.1, 1.1)
-    ax.axis('off')
+def plot_user_schedule(df, user_name, selected_date):
+    df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
+    if df_user.empty:
+        st.warning(f"{user_name} の予定が見つかりませんでした。")
+        return
+
+    labels = []
+    sizes = []
 
     for _, row in df_user.iterrows():
         start = datetime.strptime(row["開始"], "%H:%M")
         end = datetime.strptime(row["終了"], "%H:%M")
-        start_hour = start.hour + start.minute / 60
-        end_hour = end.hour + end.minute / 60
+        duration = (end - start).seconds / 3600
+        if duration <= 0:
+            continue
 
-        if end_hour < start_hour:
-            end_hour += 24  # 深夜跨ぎ対応
+        labels.append(f'{row["内容"]} ({row["開始"]}-{row["終了"]})')
+        sizes.append(duration)
 
-        # 角度計算（0:00を90度＝真上に）
-        start_angle = (90 - (start_hour / 24) * 360) % 360
-        end_angle = (90 - (end_hour / 24) * 360) % 360
-
-        # 時計回りに描画
-        if end_angle > start_angle:
-            end_angle -= 360
-
-        wedge = Wedge((0, 0), 1.0, theta1=start_angle, theta2=end_angle,
-                      facecolor='lightblue', edgecolor='black', linewidth=1.5)
-        ax.add_patch(wedge)
-
-        # ラベル表示（中央角を計算）
-        mid_angle = (start_angle + end_angle) / 2
-        rad = (mid_angle / 180) * 3.14159
-        x = 0.7 * np.cos(rad)
-        y = 0.7 * np.sin(rad)
-        ax.text(x, y, row["内容"], ha='center', va='center', fontsize=9)
-
-    ax.set_title(f"{user_name} の24時間予定図（0時が真上）")
+    fig, ax = plt.subplots(figsize=(5, 5))
+    ax.pie(sizes, labels=labels, startangle=90, counterclock=False)
+    ax.set_title(f"{user_name} の予定")
     st.pyplot(fig)
-
 
 
 
