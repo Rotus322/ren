@@ -10,11 +10,11 @@ def plot_circular_schedule(df_user, user_name):
     import matplotlib.colors as mcolors
     import itertools
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
-    ax.set_xlim(-1.3, 1.3)
-    ax.set_ylim(-1.3, 1.3)
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1.5, 1.5)
     ax.axis('off')
 
-    # カテゴリ別カラー辞書（足りなければ増やせます）
+    # カテゴリ別カラー辞書
     category_colors = {
         'ごはん': 'orange',
         '勉強': 'skyblue',
@@ -26,6 +26,8 @@ def plot_circular_schedule(df_user, user_name):
     }
     default_colors = list(mcolors.TABLEAU_COLORS.values())
     fallback_colors = itertools.cycle(default_colors)
+
+    color_map = {}  # 内容→色 の割り当て
 
     for idx, row in df_user.iterrows():
         content = row["内容"].strip()
@@ -42,45 +44,48 @@ def plot_circular_schedule(df_user, user_name):
         if end_angle > start_angle:
             end_angle -= 360
 
-        # カテゴリ色を優先、無ければ順に割り当て
-        color = category_colors.get(content, next(fallback_colors)) if content != "" else "white"
+        # 色割り当て
+        if content == "":
+            color = "white"
+        elif content in category_colors:
+            color = category_colors[content]
+        else:
+            if content not in color_map:
+                color_map[content] = next(fallback_colors)
+            color = color_map[content]
 
-        # 予定のブロック
+        # 予定ブロック
         wedge = Wedge((0, 0), 1.0, theta1=start_angle, theta2=end_angle,
                       facecolor=color, edgecolor='black', linewidth=1.2)
         ax.add_patch(wedge)
 
-        # 開始線（外周の外まで）
-        rad = np.radians(start_angle)
-        x0, y0 = 0, 0
-        x1, y1 = 1.25 * np.cos(rad), 1.25 * np.sin(rad)
-        ax.plot([x0, x1], [y0, y1], color='black', linewidth=1)
-
-        # 開始時刻の外周ラベル
-        x_label = 1.35 * np.cos(rad)
-        y_label = 1.35 * np.sin(rad)
-        ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7)
-
-        # 内容ラベル
+        # 内容ありの予定に外向きの線とラベル
         if content != "":
             mid_angle = (start_angle + end_angle) / 2
             mid_rad = np.radians(mid_angle)
-            radius = 0.65 if duration >= 1 else 1.2  # 1時間未満は外に
-            x = radius * np.cos(mid_rad)
-            y = radius * np.sin(mid_rad)
-            ax.text(x, y, content, ha='center', va='center', fontsize=8)
+            x_mid = 0.8 * np.cos(mid_rad)
+            y_mid = 0.8 * np.sin(mid_rad)
+            x_outer = 1.35 * np.cos(mid_rad)
+            y_outer = 1.35 * np.sin(mid_rad)
+            ax.plot([x_mid, x_outer], [y_mid, y_outer], color='black', linewidth=1)
+            ax.text(x_outer, y_outer, content, ha='center', va='center', fontsize=8)
 
-    # 0〜23時の外周目盛り
+        # 開始時刻ラベル
+        rad = np.radians(start_angle)
+        x_label = 1.45 * np.cos(rad)
+        y_label = 1.45 * np.sin(rad)
+        ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7)
+
+    # 0〜23時外周目盛り
     for h in range(24):
         angle = (90 - h / 24 * 360) % 360
         rad = np.radians(angle)
-        x = 1.05 * np.cos(rad)
-        y = 1.05 * np.sin(rad)
+        x = 1.1 * np.cos(rad)
+        y = 1.1 * np.sin(rad)
         ax.text(x, y, f"{h}", ha='center', va='center', fontsize=6.5, color='gray')
 
     ax.set_title(f"{user_name} の予定（0時が真上）", fontsize=12)
     st.pyplot(fig)
-
 
 
 
