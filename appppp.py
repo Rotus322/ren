@@ -24,9 +24,8 @@ def plot_circular_schedule(df_user, user_name):
         '電話': 'khaki',
         '自由': 'salmon'
     }
-    default_colors = list(mcolors.TABLEAU_COLORS.values())
-    fallback_colors = itertools.cycle(default_colors)
-
+    custom_colors = ["red", "yellow", "blue", "green", "pink", "cyan"]
+    fallback_colors = itertools.cycle(custom_colors)
     color_map = {}  # 内容→色 の割り当て
 
     for idx, row in df_user.iterrows():
@@ -63,9 +62,9 @@ def plot_circular_schedule(df_user, user_name):
         rad = np.radians(start_angle)
         ax.plot([0, np.cos(rad)], [0, np.sin(rad)], color='black', linewidth=1)
 
-        # 開始時刻ラベル
-        x_label = 1.45 * np.cos(rad)
-        y_label = 1.45 * np.sin(rad)
+        # 開始時刻ラベル（円のすぐ外側）
+        x_label = 1.05 * np.cos(rad)
+        y_label = 1.05 * np.sin(rad)
         ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7)
 
         # ラベル表示位置と線（1時間未満のみ外）
