@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 import streamlit as st
+import matplotlib_fontja
 
 def plot_user_schedule(df, user_name, selected_date):
     from matplotlib.patches import ConnectionPatch
