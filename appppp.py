@@ -167,10 +167,6 @@ def plot_user_schedule(df, user_name, selected_date):
     # --- 重複排除・ソート ---
     time_points = sorted(set(time_points))
 
-    fig, ax = plt.subplots(figsize=(6, 6))
-    wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
-    ax.set_title(f"{user_name} の予定（境界に時間表示）")
-
     # --- 区切り時間表示 ---
     for h in time_points:
         angle = 90 - (h / 24) * 360  # 0時が真上
