@@ -158,8 +158,8 @@ def plot_user_schedule(df, user_name, selected_date):
             # 外側へ線を引いて描画
             x0 = radius * 0.8 * np.cos(np.radians(theta))
             y0 = radius * 0.8 * np.sin(np.radians(theta))
-            x1 = radius * 1.0 * np.cos(np.radians(theta))
-            y1 = radius * 1.0 * np.sin(np.radians(theta))
+            x1 = radius * 1.2 * np.cos(np.radians(theta))
+            y1 = radius * 1.2 * np.sin(np.radians(theta))
             ax.plot([x0, x1], [y0, y1], color="black", linewidth=0.8)
             ax.text(x1, y1, label, ha="center", va="center", fontsize=8, color="black")
 
@@ -179,8 +179,8 @@ def plot_user_schedule(df, user_name, selected_date):
             h = 0.0
 
         angle_h = 90 - (h / 24) * 360
-        x = 1.15 * np.cos(np.radians(angle_h))
-        y = 1.15 * np.sin(np.radians(angle_h))
+        x = 1.0 * np.cos(np.radians(angle_h))
+        y = 1.0 * np.sin(np.radians(angle_h))
 
         hour = int(h)
         minute = int(round((h % 1) * 60))
