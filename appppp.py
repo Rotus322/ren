@@ -156,7 +156,7 @@ def plot_user_schedule(df, user_name, selected_date):
             ax.text(x, y, label, ha="center", va="center", fontsize=8, color="black")
         else:
             # 外側へ線を引いて描画
-            x0 = radius * 0.9 * np.cos(np.radians(theta))
+            x0 = radius * 1.9 * np.cos(np.radians(theta))
             y0 = radius * 0.9 * np.sin(np.radians(theta))
             x1 = radius * 1.2 * np.cos(np.radians(theta))
             y1 = radius * 1.2 * np.sin(np.radians(theta))
