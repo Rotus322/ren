@@ -70,9 +70,9 @@ def plot_circular_schedule(df_user, user_name):
                 # 外ラベル（線は扇の中点から外へ）
                 x_inner = 0.6 * np.cos(mid_rad)
                 y_inner = 0.6 * np.sin(mid_rad)
-                x_outer = 1.35 * np.cos(mid_rad)
+                x_outer = 2.35 * np.cos(mid_rad)
                 y_outer = 1.35 * np.sin(mid_rad)
-                ax.plot([x_inner * 2.05, x_outer], [y_inner * 1.05, y_outer], color='black', linewidth=0.8)
+                ax.plot([x_inner * 1.05, x_outer], [y_inner * 1.05, y_outer], color='black', linewidth=0.8)
                 ax.text(x_outer, y_outer, content, ha='center', va='center', fontsize=8, color='black')
             else:
                 # 内ラベル（少し内側）
