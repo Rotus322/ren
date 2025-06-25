@@ -108,7 +108,7 @@ def plot_user_schedule(df, user_name, selected_date):
             time_marks.append(start)
 
         # 予定本体
-        labels.append(f'{row["内容"]} ({row["開始"]}-{row["終了"]})')
+        labels.append(f'{row["内容"]}')
         sizes.append(end - start)
         colors.append(color_palette[color_index % len(color_palette)])
         time_marks.append(end)
