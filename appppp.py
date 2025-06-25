@@ -11,18 +11,22 @@ def plot_circular_schedule(df_user, user_name):
     import itertools
     import random
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
-    ax.set_xlim(-1.5, 1.5)
-    ax.set_ylim(-1.5, 1.5)
+    ax.set_xlim(-1.6, 1.6)
+    ax.set_ylim(-1.6, 1.6)
     ax.axis('off')
 
-    # カラー候補から重複しないよう順に使う
-    all_colors = list(mcolors.TABLEAU_COLORS.values()) + list(mcolors.CSS4_COLORS.values())
-    random.shuffle(all_colors)
-    used_colors = iter(all_colors)
-    color_map = {}  # 内容→色 の割り当て（重複なし）
+    # 使いやすく視認性の高いカラーを選択
+    color_pool = [
+        "#FF6F61", "#6B5B95", "#88B04B", "#F7CAC9", "#92A8D1",
+        "#955251", "#B565A7", "#009B77", "#DD4124", "#45B8AC",
+        "#EFC050", "#5B5EA6", "#9B2335", "#DFCFBE", "#55B4B0"
+    ]
+    random.shuffle(color_pool)
+    color_iter = iter(color_pool)
+    color_map = {}
 
     for idx, row in df_user.iterrows():
-        content = row["内容"].strip()
+        content = str(row["内容"]).strip()
         start = datetime.strptime(row["開始"], "%H:%M")
         end = datetime.strptime(row["終了"], "%H:%M")
         start_hour = start.hour + start.minute / 60
@@ -36,45 +40,47 @@ def plot_circular_schedule(df_user, user_name):
         if end_angle > start_angle:
             end_angle -= 360
 
-        # 内容別に一度きりの色を割り当て
-        if content not in color_map:
-            color_map[content] = next(used_colors)
-        color = color_map[content] if content != "" else "white"
+        # 色の割当（空白なら白）
+        if content == "" or content.lower() == "nan":
+            color = "white"
+        else:
+            if content not in color_map:
+                color_map[content] = next(color_iter, "#CCCCCC")  # fallback color
+            color = color_map[content]
 
         # 予定ブロック
         wedge = Wedge((0, 0), 1.0, theta1=start_angle, theta2=end_angle,
                       facecolor=color, edgecolor='black', linewidth=1.2)
         ax.add_patch(wedge)
 
-        # 開始線（区切り線）
+        # 区切り線
         rad = np.radians(start_angle)
         ax.plot([0, np.cos(rad)], [0, np.sin(rad)], color='black', linewidth=1)
 
-        # 開始時刻ラベル（円のすぐ外側）
-        x_label = 1.05 * np.cos(rad)
-        y_label = 1.05 * np.sin(rad)
-        ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7)
+        # 開始時刻ラベル（近め）
+        x_label = 1.02 * np.cos(rad)
+        y_label = 1.02 * np.sin(rad)
+        ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7, color='black')
 
-        # ラベル表示（1時間以下は外に、超えたら内に）
-        if content != "":
+        if content != "" and content.lower() != "nan":
             mid_angle = (start_angle + end_angle) / 2
             mid_rad = np.radians(mid_angle)
+            x_mid = 0.7 * np.cos(mid_rad)
+            y_mid = 0.7 * np.sin(mid_rad)
+
             if duration <= 1:
-                # 外ラベル
-                x_mid = 0.8 * np.cos(mid_rad)
-                y_mid = 0.8 * np.sin(mid_rad)
-                x_outer = 1.35 * np.cos(mid_rad)
-                y_outer = 1.35 * np.sin(mid_rad)
-                ax.plot([x_mid, x_outer], [y_mid, y_outer], color='black', linewidth=1)
-                ax.text(x_outer, y_outer, content, ha='center', va='center', fontsize=8)
+                # 外ラベル用線（重ならないよう距離を外へ）
+                x_outer = 1.4 * np.cos(mid_rad)
+                y_outer = 1.4 * np.sin(mid_rad)
+                ax.plot([x_mid, x_outer], [y_mid, y_outer], color='black', linewidth=0.8)
+                ax.text(x_outer, y_outer, content, ha='center', va='center', fontsize=8, color='black')
             else:
                 # 内ラベル
-                x = 0.65 * np.cos(mid_rad)
-                y = 0.65 * np.sin(mid_rad)
-                ax.text(x, y, content, ha='center', va='center', fontsize=8)
+                ax.text(x_mid, y_mid, content, ha='center', va='center', fontsize=8, color='black')
 
     ax.set_title(f"{user_name} の予定（0時が真上）", fontsize=12)
     st.pyplot(fig)
+
 
 
 
