@@ -63,6 +63,11 @@ def plot_circular_schedule(df_user, user_name):
         rad = np.radians(start_angle)
         ax.plot([0, np.cos(rad)], [0, np.sin(rad)], color='black', linewidth=1)
 
+        # 開始時刻ラベル
+        x_label = 1.45 * np.cos(rad)
+        y_label = 1.45 * np.sin(rad)
+        ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7)
+
         # ラベル表示位置と線（1時間未満のみ外）
         if content != "":
             mid_angle = (start_angle + end_angle) / 2
@@ -81,22 +86,9 @@ def plot_circular_schedule(df_user, user_name):
                 y = 0.65 * np.sin(mid_rad)
                 ax.text(x, y, content, ha='center', va='center', fontsize=8)
 
-        # 開始時刻ラベル
-        rad = np.radians(start_angle)
-        x_label = 1.45 * np.cos(rad)
-        y_label = 1.45 * np.sin(rad)
-        ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7)
-
-    # 0〜23時外周目盛り
-    for h in range(24):
-        angle = (90 - h / 24 * 360) % 360
-        rad = np.radians(angle)
-        x = 1.1 * np.cos(rad)
-        y = 1.1 * np.sin(rad)
-        ax.text(x, y, f"{h}", ha='center', va='center', fontsize=6.5, color='gray')
-
     ax.set_title(f"{user_name} の予定（0時が真上）", fontsize=12)
     st.pyplot(fig)
+
 
 
 
