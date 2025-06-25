@@ -168,17 +168,22 @@ def plot_user_schedule(df, user_name, selected_date):
     time_points = sorted(set(time_points))
 
     # --- 区切り時間表示 ---
-    for h in time_points:
-        angle = 90 - (h / 24) * 360  # 0時が真上
-        x = 1.15 * np.cos(np.radians(angle))
-        y = 1.15 * np.sin(np.radians(angle))
+    for h in sorted(set(time_points)):
+    # 誤差を吸収した上で24時扱いに
+        h_rounded = round(h, 4)
+        angle_h = 90 - (h_rounded / 24) * 360
+        x = 1.35 * np.cos(np.radians(angle_h))
+        y = 1.35 * np.sin(np.radians(angle_h))
 
-        if abs( h / 24.0) <= 1e-6 :
+        if abs(h_rounded - 24.0) < 1e-2:
             label = "00:00"
         else:
-            label = f"{int(h):02d}:{int((h % 1)*60):02d}"
-        
-        ax.text(x, y, f"{int(h):02d}:{int((h % 1)*60):02d}", ha="center", va="center", fontsize=6)
+            hour = int(h_rounded)
+            minute = int(round((h_rounded % 1) * 60))
+            label = f"{hour:02d}:{minute:02d}"
+
+        ax.text(x, y, label, ha="center", va="center", fontsize=6)
+
     st.pyplot(fig)
 
 st.header("📊 円グラフで予定を比較")
