@@ -172,6 +172,12 @@ def plot_user_schedule(df, user_name, selected_date):
         angle = 90 - (h / 24) * 360  # 0時が真上
         x = 1.15 * np.cos(np.radians(angle))
         y = 1.15 * np.sin(np.radians(angle))
+
+        if abs(h - 24.0) < 1e-6:
+            label = "00:00"
+        else:
+            label = f"{int(h):02d}:{int((h % 1)*60):02d}"
+        
         ax.text(x, y, f"{int(h):02d}:{int((h % 1)*60):02d}", ha="center", va="center", fontsize=6)
     st.pyplot(fig)
 
