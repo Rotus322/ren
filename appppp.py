@@ -7,34 +7,38 @@ from matplotlib.patches import Wedge
 import numpy as np
 
 def plot_circular_schedule(df_user, user_name):
+    import matplotlib.colors as mcolors
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
     ax.set_xlim(-1.1, 1.1)
     ax.set_ylim(-1.1, 1.1)
     ax.axis('off')
 
-    for _, row in df_user.iterrows():
+    colors = list(mcolors.TABLEAU_COLORS.values())  # 色セット
+
+    for idx, row in df_user.iterrows():
         start = datetime.strptime(row["開始"], "%H:%M")
         end = datetime.strptime(row["終了"], "%H:%M")
         start_hour = start.hour + start.minute / 60
         end_hour = end.hour + end.minute / 60
         if end_hour < start_hour:
-            end_hour += 24  # 深夜またぎ対応
+            end_hour += 24  # 深夜またぎ
 
-        # 円グラフの角度（0時が真上）
+        # 角度（0時が真上）
         start_angle = (90 - (start_hour / 24) * 360) % 360
         end_angle = (90 - (end_hour / 24) * 360) % 360
         if end_angle > start_angle:
             end_angle -= 360
 
-        # 内容空白なら白色、そうでなければ青系
+        # 色設定
         content = row["内容"]
-        color = "white" if not content.strip() else "lightblue"
+        color = "white" if not content.strip() else colors[idx % len(colors)]
 
+        # 予定の塗り
         wedge = Wedge((0, 0), 1.0, theta1=start_angle, theta2=end_angle,
                       facecolor=color, edgecolor='black', linewidth=1.2)
         ax.add_patch(wedge)
 
-        # 内容が空でなければラベルも表示
+        # ラベル（内容）
         if content.strip():
             mid_angle = (start_angle + end_angle) / 2
             rad = np.radians(mid_angle)
@@ -42,17 +46,25 @@ def plot_circular_schedule(df_user, user_name):
             y = 0.65 * np.sin(rad)
             ax.text(x, y, content, ha='center', va='center', fontsize=8)
 
-    # ⏱ 外周に24時間表記
+        # 🕐 時刻ラベル（開始時刻）
+        angle = start_angle
+        rad = np.radians(angle)
+        x = 1.1 * np.cos(rad)
+        y = 1.1 * np.sin(rad)
+        time_label = row["開始"]
+        ax.text(x, y, time_label, ha='center', va='center', fontsize=7, color='black')
+
+    # ⏱ 外周に24時間目盛り（グレー）
     for h in range(24):
         angle = (90 - h / 24 * 360) % 360
         rad = np.radians(angle)
-        x = 1.05 * np.cos(rad)
-        y = 1.05 * np.sin(rad)
-        label = f"{h}:00"
-        ax.text(x, y, label, ha='center', va='center', fontsize=7.5, color='gray')
+        x = 1.02 * np.cos(rad)
+        y = 1.02 * np.sin(rad)
+        ax.text(x, y, f"{h}", ha='center', va='center', fontsize=6.5, color='gray')
 
     ax.set_title(f"{user_name} の予定（0時が真上）", fontsize=12)
     st.pyplot(fig)
+
 
 st.set_page_config(page_title="予定提出アプリ", layout="centered")
 st.title("🗓️ 予定提出アプリ")
