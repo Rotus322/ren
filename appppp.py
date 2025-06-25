@@ -76,7 +76,6 @@ def plot_user_schedule(df, user_name, selected_date):
         st.warning(f"{user_name} の予定が見つかりませんでした。")
         return
 
-    # 予定を時刻順に並べる
     df_user_sorted = df_user.sort_values(by="開始")
 
     labels = []
@@ -86,26 +85,34 @@ def plot_user_schedule(df, user_name, selected_date):
     def to_hour(tstr):
         return datetime.strptime(tstr, "%H:%M").hour + datetime.strptime(tstr, "%H:%M").minute / 60
 
-    current_time = 0.0  # 0時からスタート
+    current_time = 0.0
+
+    # 色リスト：好きな色を増減できます
+    color_palette = [
+        "#FF9999", "#FFCC99", "#99CCFF", "#99FF99", "#FFB3E6",
+        "#CCCCFF", "#FFFF99", "#FF6666", "#66CCCC", "#FF9966"
+    ]
+    color_index = 0
 
     for _, row in df_user_sorted.iterrows():
         start = to_hour(row["開始"])
         end = to_hour(row["終了"])
 
-        # 空き時間を挿入（必要な場合）
+        # 空き時間
         if start > current_time:
             labels.append("（空き時間）")
             sizes.append(start - current_time)
             colors.append("lightgray")
 
-        # 予定部分
+        # 予定
         labels.append(f'{row["内容"]} ({row["開始"]}-{row["終了"]})')
         sizes.append(end - start)
-        colors.append(None)  # 自動色
+        colors.append(color_palette[color_index % len(color_palette)])
+        color_index += 1
 
         current_time = end
 
-    # 24時間までに残ってる空き時間を追加
+    # 残りの空き時間
     if current_time < 24.0:
         labels.append("（空き時間）")
         sizes.append(24.0 - current_time)
@@ -119,7 +126,7 @@ def plot_user_schedule(df, user_name, selected_date):
         counterclock=False,
         colors=colors
     )
-    ax.set_title(f"{user_name} の予定（24時間表示）")
+    ax.set_title(f"{user_name} の予定（24時間・色分け）")
     st.pyplot(fig)
 
 st.header("📊 円グラフで予定を比較")
