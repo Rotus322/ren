@@ -3,3 +3,4 @@ pandas
 matplotlib
 datetime
 matplotlib_fontja
+numpy
