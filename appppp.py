@@ -3,6 +3,55 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, time, date
 import matplotlib_fontja
+from matplotlib.patches import Wedge
+
+def plot_circular_schedule(df_user, user_name):
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
+    ax.set_xlim(-1.1, 1.1)
+    ax.set_ylim(-1.1, 1.1)
+    ax.axis('off')
+
+    for _, row in df_user.iterrows():
+        start = datetime.strptime(row["開始"], "%H:%M")
+        end = datetime.strptime(row["終了"], "%H:%M")
+        start_hour = start.hour + start.minute / 60
+        end_hour = end.hour + end.minute / 60
+        if end_hour < start_hour:
+            end_hour += 24  # 深夜またぎ対応
+
+        # 円グラフの角度（0時が真上）
+        start_angle = (90 - (start_hour / 24) * 360) % 360
+        end_angle = (90 - (end_hour / 24) * 360) % 360
+        if end_angle > start_angle:
+            end_angle -= 360
+
+        # 内容空白なら白色、そうでなければ青系
+        content = row["内容"]
+        color = "white" if not content.strip() else "lightblue"
+
+        wedge = Wedge((0, 0), 1.0, theta1=start_angle, theta2=end_angle,
+                      facecolor=color, edgecolor='black', linewidth=1.2)
+        ax.add_patch(wedge)
+
+        # 内容が空でなければラベルも表示
+        if content.strip():
+            mid_angle = (start_angle + end_angle) / 2
+            rad = np.radians(mid_angle)
+            x = 0.65 * np.cos(rad)
+            y = 0.65 * np.sin(rad)
+            ax.text(x, y, content, ha='center', va='center', fontsize=8)
+
+    # ⏱ 外周に24時間表記
+    for h in range(24):
+        angle = (90 - h / 24 * 360) % 360
+        rad = np.radians(angle)
+        x = 1.05 * np.cos(rad)
+        y = 1.05 * np.sin(rad)
+        label = f"{h}:00"
+        ax.text(x, y, label, ha='center', va='center', fontsize=7.5, color='gray')
+
+    ax.set_title(f"{user_name} の予定（0時が真上）", fontsize=12)
+    st.pyplot(fig)
 
 st.set_page_config(page_title="予定提出アプリ", layout="centered")
 st.title("🗓️ 予定提出アプリ")
@@ -104,11 +153,12 @@ try:
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("🧑 れん")
-        plot_user_schedule(df, "れん", view_date)
+        df_g = df[(df["名前"] == "れん") & (df["日付"] == view_date.strftime("%Y-%m-%d"))]
+        plot_circular_schedule(df_g, "れん")
     with col2:
         st.subheader("👩 ゆみ")
-        plot_user_schedule(df, "ゆみ", view_date)
-
+        df_g = df[(df["名前"] == "ゆみ") & (df["日付"] == view_date.strftime("%Y-%m-%d"))]
+        plot_circular_schedule(df_g, "ゆみ")
 
 except FileNotFoundError:
     st.info("まだ誰も予定を提出していません。")
