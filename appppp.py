@@ -114,7 +114,7 @@ def plot_user_schedule(df, user_name, selected_date):
         # 予定本体
         dur = end - start
         labels.append("")  # 描画ラベルは自前でやる
-        raw_labels.append(f'{row["内容"]} ({row["開始"]}-{row["終了"]})')
+        raw_labels.append(f'{row["内容"]}')
         sizes.append(dur)
         colors.append(color_palette[color_index % len(color_palette)])
         color_index += 1
