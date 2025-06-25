@@ -71,6 +71,8 @@ if st.button("提出"):
 
 # ---------- グラフ表示 ----------
 def plot_user_schedule(df, user_name, selected_date):
+    import numpy as np  # 時間ラベル用
+
     df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
     if df_user.empty:
         st.warning(f"{user_name} の予定が見つかりませんでした。")
@@ -81,13 +83,13 @@ def plot_user_schedule(df, user_name, selected_date):
     labels = []
     sizes = []
     colors = []
+    time_marks = []
 
     def to_hour(tstr):
-        return datetime.strptime(tstr, "%H:%M").hour + datetime.strptime(tstr, "%H:%M").minute / 60
+        t = datetime.strptime(tstr, "%H:%M")
+        return t.hour + t.minute / 60
 
     current_time = 0.0
-
-    # 色リスト：好きな色を増減できます
     color_palette = [
         "#FF9999", "#FFCC99", "#99CCFF", "#99FF99", "#FFB3E6",
         "#CCCCFF", "#FFFF99", "#FF6666", "#66CCCC", "#FF9966"
@@ -103,32 +105,46 @@ def plot_user_schedule(df, user_name, selected_date):
             labels.append("（空き時間）")
             sizes.append(start - current_time)
             colors.append("lightgray")
+            time_marks.append(start)
 
-        # 予定
+        # 予定本体
         labels.append(f'{row["内容"]} ({row["開始"]}-{row["終了"]})')
         sizes.append(end - start)
         colors.append(color_palette[color_index % len(color_palette)])
-        color_index += 1
+        time_marks.append(end)
 
+        color_index += 1
         current_time = end
 
-    # 残りの空き時間
     if current_time < 24.0:
         labels.append("（空き時間）")
         sizes.append(24.0 - current_time)
         colors.append("lightgray")
+        time_marks.append(24.0)
 
-    fig, ax = plt.subplots(figsize=(5, 5))
-    ax.pie(
+    # --- グラフ描画 ---
+    fig, ax = plt.subplots(figsize=(6, 6))
+    wedges, _ = ax.pie(
         sizes,
         labels=labels,
         startangle=90,
         counterclock=False,
         colors=colors
     )
-    ax.set_title(f"{user_name} の予定（24時間・色分け）")
-    st.pyplot(fig)
+    ax.set_title(f"{user_name} の予定（24時間・区切り時間表示）")
 
+    # --- 時間マークの表示 ---
+    total = sum(sizes)
+    angle = 90  # Start from 0:00 (top)
+
+    for dur, mark in zip(sizes, time_marks):
+        angle -= dur / total * 360
+        x = 1.1 * np.cos(np.radians(angle))
+        y = 1.1 * np.sin(np.radians(angle))
+        label_time = f"{int(mark):02d}:{int((mark % 1) * 60):02d}"
+        ax.text(x, y, label_time, ha="center", va="center", fontsize=9, color="black")
+
+    st.pyplot(fig)
 st.header("📊 円グラフで予定を比較")
 view_date = st.date_input("表示する日付を選択", value=date.today(), key="view_date")
 
