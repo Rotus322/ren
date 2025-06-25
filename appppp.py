@@ -59,16 +59,27 @@ def plot_circular_schedule(df_user, user_name):
                       facecolor=color, edgecolor='black', linewidth=1.2)
         ax.add_patch(wedge)
 
-        # 内容ありの予定に外向きの線とラベル
+        # 開始線（区切り線）
+        rad = np.radians(start_angle)
+        ax.plot([0, np.cos(rad)], [0, np.sin(rad)], color='black', linewidth=1)
+
+        # ラベル表示位置と線（1時間未満のみ外）
         if content != "":
             mid_angle = (start_angle + end_angle) / 2
             mid_rad = np.radians(mid_angle)
-            x_mid = 0.8 * np.cos(mid_rad)
-            y_mid = 0.8 * np.sin(mid_rad)
-            x_outer = 1.35 * np.cos(mid_rad)
-            y_outer = 1.35 * np.sin(mid_rad)
-            ax.plot([x_mid, x_outer], [y_mid, y_outer], color='black', linewidth=1)
-            ax.text(x_outer, y_outer, content, ha='center', va='center', fontsize=8)
+            if duration < 1:
+                # 外ラベルと線
+                x_mid = 0.8 * np.cos(mid_rad)
+                y_mid = 0.8 * np.sin(mid_rad)
+                x_outer = 1.35 * np.cos(mid_rad)
+                y_outer = 1.35 * np.sin(mid_rad)
+                ax.plot([x_mid, x_outer], [y_mid, y_outer], color='black', linewidth=1)
+                ax.text(x_outer, y_outer, content, ha='center', va='center', fontsize=8)
+            else:
+                # 内ラベル
+                x = 0.65 * np.cos(mid_rad)
+                y = 0.65 * np.sin(mid_rad)
+                ax.text(x, y, content, ha='center', va='center', fontsize=8)
 
         # 開始時刻ラベル
         rad = np.radians(start_angle)
