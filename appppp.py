@@ -84,7 +84,7 @@ def plot_user_schedule(df, user_name, selected_date):
     labels = []
     sizes = []
     colors = []
-    raw_labels = []  # 後でラベル描画用
+    time_points = []
 
     def to_hour(tstr):
         t = datetime.strptime(tstr, "%H:%M")
@@ -97,65 +97,47 @@ def plot_user_schedule(df, user_name, selected_date):
     ]
     color_index = 0
 
+    # --- 予定・空き時間処理 ---
     for _, row in df_user_sorted.iterrows():
         start = to_hour(row["開始"])
         end = to_hour(row["終了"])
 
-        # 空き時間
         if start > current_time:
-            labels.append("")  # 空き時間はラベルなし
-            raw_labels.append("（空き）")
+            labels.append("")
             sizes.append(start - current_time)
             colors.append("lightgray")
+            time_points.append(current_time)
+            time_points.append(start)
 
-        # 予定本体
-        dur = end - start
-        labels.append("")  # 描画ラベルは自前でやる
-        raw_labels.append(f'{row["内容"]}')
-        sizes.append(dur)
+        labels.append("")
+        sizes.append(end - start)
         colors.append(color_palette[color_index % len(color_palette)])
         color_index += 1
+        time_points.append(start)
+        time_points.append(end)
+
         current_time = end
 
     if current_time < 24.0:
         labels.append("")
-        raw_labels.append("（空き）")
         sizes.append(24.0 - current_time)
         colors.append("lightgray")
+        time_points.append(current_time)
+        time_points.append(24.0)
+
+    # --- 重複排除・ソート ---
+    time_points = sorted(set(time_points))
 
     fig, ax = plt.subplots(figsize=(6, 6))
     wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
+    ax.set_title(f"{user_name} の予定（境界に時間表示）")
 
-    ax.set_title(f"{user_name} の予定（外ラベル表示対応）")
-
-    total = sum(sizes)
-    angle = 90  # Start from top (0:00)
-    radius = 1  # default pie radius
-
-    for i, wedge in enumerate(wedges):
-        dur = sizes[i]
-        label = raw_labels[i]
-
-        if not label or label == "（空き）":
-            continue
-
-        theta = angle - (dur / 2 / total) * 360  # 中央角
-        x = radius * 0.6 * np.cos(np.radians(theta))
-        y = radius * 0.6 * np.sin(np.radians(theta))
-
-        if dur >= 1.0:
-            # ラベルを内部に描画
-            ax.text(x, y, label, ha="center", va="center", fontsize=8, color="black")
-        else:
-            # 外側へ線を引いて描画
-            x0 = radius * 0.9 * np.cos(np.radians(theta))
-            y0 = radius * 0.9 * np.sin(np.radians(theta))
-            x1 = radius * 1.2 * np.cos(np.radians(theta))
-            y1 = radius * 1.2 * np.sin(np.radians(theta))
-            ax.plot([x0, x1], [y0, y1], color="black", linewidth=0.8)
-            ax.text(x1, y1, label, ha="center", va="center", fontsize=8, color="black")
-
-        angle -= dur / total * 360  # 次の扇へ
+    # --- 区切り時間表示 ---
+    for h in time_points:
+        angle = 90 - (h / 24) * 360  # 0時が真上
+        x = 1.15 * np.cos(np.radians(angle))
+        y = 1.15 * np.sin(np.radians(angle))
+        ax.text(x, y, f"{int(h):02d}:{int((h % 1)*60):02d}", ha="center", va="center", fontsize=8)
 
     st.pyplot(fig)
 st.header("📊 円グラフで予定を比較")
