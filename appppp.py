@@ -134,7 +134,7 @@ def plot_user_schedule(df, user_name, selected_date):
     fig, ax = plt.subplots(figsize=(6, 6))
     wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
 
-    ax.set_title(f"{user_name} の予定")
+    ax.set_title(f"{user_name} の予定（外ラベル表示対応）")
 
     total = sum(sizes)
     angle = 90  # Start from top (0:00)
@@ -144,24 +144,13 @@ def plot_user_schedule(df, user_name, selected_date):
         dur = sizes[i]
         label = raw_labels[i]
 
+        if not label or label == "（空き）":
+            continue
+
         theta = angle - (dur / 2 / total) * 360  # 中央角
         x = radius * 0.6 * np.cos(np.radians(theta))
         y = radius * 0.6 * np.sin(np.radians(theta))
 
-        if not label or label == "（空き）":
-            pass
-        elif dur >= 1.0:
-            ax.text(x, y, label, ha="center", va="center", fontsize=8, color="black", rotation=theta - 90)
-        else:
-            # 小さい予定は外に引き出し
-            x0 = radius * 0.9 * np.cos(np.radians(theta))
-            y0 = radius * 0.9 * np.sin(np.radians(theta))
-            x1 = radius * 1.2 * np.cos(np.radians(theta))
-            y1 = radius * 1.2 * np.sin(np.radians(theta))
-            ax.plot([x0, x1], [y0, y1], color="black", linewidth=0.8)
-            ax.text(x1, y1, label, ha="center", va="center", fontsize=8, rotation=theta - 90)
-
-        angle -= dur / total * 360
         if dur >= 1.0:
             # ラベルを内部に描画
             ax.text(x, y, label, ha="center", va="center", fontsize=8, color="black")
@@ -175,7 +164,13 @@ def plot_user_schedule(df, user_name, selected_date):
             ax.text(x1, y1, label, ha="center", va="center", fontsize=8, color="black")
 
         angle -= dur / total * 360  # 次の扇へ
-  
+    # --- 重複排除・ソート ---
+    time_points = sorted(set(time_points))
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
+    ax.set_title(f"{user_name} の予定（境界に時間表示）")
+
     # --- 区切り時間表示 ---
     for h in time_points:
         angle = 90 - (h / 24) * 360  # 0時が真上
