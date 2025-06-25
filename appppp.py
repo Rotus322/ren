@@ -3,8 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, time, date
 
-st.set_page_config(page_title="予定提出＆可視化アプリ", layout="centered")
-st.title("🗓️ みんなの予定提出＆可視化アプリ")
+st.set_page_config(page_title="予定提出", layout="centered")
+st.title("🗓️ 予定提出アプリ")
 
 # --- 初期設定 ---
 if "schedule_count" not in st.session_state:
@@ -71,7 +71,8 @@ if st.button("提出"):
 
 # ---------- グラフ表示 ----------
 def plot_user_schedule(df, user_name, selected_date):
-    import numpy as np  # 時間ラベル用
+    import numpy as np
+    from matplotlib.patches import ConnectionPatch
 
     df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
     if df_user.empty:
@@ -83,7 +84,7 @@ def plot_user_schedule(df, user_name, selected_date):
     labels = []
     sizes = []
     colors = []
-    time_marks = []
+    raw_labels = []  # 後でラベル描画用
 
     def to_hour(tstr):
         t = datetime.strptime(tstr, "%H:%M")
@@ -102,47 +103,59 @@ def plot_user_schedule(df, user_name, selected_date):
 
         # 空き時間
         if start > current_time:
-            labels.append("")
+            labels.append("")  # 空き時間はラベルなし
+            raw_labels.append("（空き）")
             sizes.append(start - current_time)
             colors.append("lightgray")
-            time_marks.append(start)
 
         # 予定本体
-        labels.append(f'{row["内容"]}')
-        sizes.append(end - start)
+        dur = end - start
+        labels.append("")  # 描画ラベルは自前でやる
+        raw_labels.append(f'{row["内容"]} ({row["開始"]}-{row["終了"]})')
+        sizes.append(dur)
         colors.append(color_palette[color_index % len(color_palette)])
-        time_marks.append(end)
-
         color_index += 1
         current_time = end
 
     if current_time < 24.0:
         labels.append("")
+        raw_labels.append("（空き）")
         sizes.append(24.0 - current_time)
         colors.append("lightgray")
-        time_marks.append(24.0)
 
-    # --- グラフ描画 ---
     fig, ax = plt.subplots(figsize=(6, 6))
-    wedges, _ = ax.pie(
-        sizes,
-        labels=labels,
-        startangle=90,
-        counterclock=False,
-        colors=colors
-    )
-    ax.set_title(f"{user_name} の予定（24時間・区切り時間表示）")
+    wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
 
-    # --- 時間マークの表示 ---
+    ax.set_title(f"{user_name} の予定（外ラベル表示対応）")
+
     total = sum(sizes)
-    angle = 90  # Start from 0:00 (top)
+    angle = 90  # Start from top (0:00)
+    radius = 1  # default pie radius
 
-    for dur, mark in zip(sizes, time_marks):
-        angle -= dur / total * 360
-        x = 1.1 * np.cos(np.radians(angle))
-        y = 1.1 * np.sin(np.radians(angle))
-        label_time = f"{int(mark):02d}:{int((mark % 1) * 60):02d}"
-        ax.text(x, y, label_time, ha="center", va="center", fontsize=9, color="black")
+    for i, wedge in enumerate(wedges):
+        dur = sizes[i]
+        label = raw_labels[i]
+
+        if not label or label == "（空き）":
+            continue
+
+        theta = angle - (dur / 2 / total) * 360  # 中央角
+        x = radius * 0.6 * np.cos(np.radians(theta))
+        y = radius * 0.6 * np.sin(np.radians(theta))
+
+        if dur >= 1.0:
+            # ラベルを内部に描画
+            ax.text(x, y, label, ha="center", va="center", fontsize=8, color="black")
+        else:
+            # 外側へ線を引いて描画
+            x0 = radius * 0.9 * np.cos(np.radians(theta))
+            y0 = radius * 0.9 * np.sin(np.radians(theta))
+            x1 = radius * 1.2 * np.cos(np.radians(theta))
+            y1 = radius * 1.2 * np.sin(np.radians(theta))
+            ax.plot([x0, x1], [y0, y1], color="black", linewidth=0.8)
+            ax.text(x1, y1, label, ha="center", va="center", fontsize=8, color="black")
+
+        angle -= dur / total * 360  # 次の扇へ
 
     st.pyplot(fig)
 st.header("📊 円グラフで予定を比較")
