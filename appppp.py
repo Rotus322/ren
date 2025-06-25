@@ -7,82 +7,41 @@ from matplotlib.patches import Wedge
 import numpy as np
 
 def plot_circular_schedule(df_user, user_name):
-    import matplotlib.colors as mcolors
-    import itertools
-    import random
-    fig, ax = plt.subplots(figsize=(7, 7), subplot_kw={'aspect': 'equal'})
-    ax.set_xlim(-1.6, 1.6)
-    ax.set_ylim(-1.6, 1.6)
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
+    ax.set_xlim(-1.1, 1.1)
+    ax.set_ylim(-1.1, 1.1)
     ax.axis('off')
 
-    # 明るめのカラーセットを使用
-    color_pool = [
-        "#FF6F61", "#6B5B95", "#88B04B", "#F7CAC9", "#92A8D1",
-        "#955251", "#B565A7", "#009B77", "#DD4124", "#45B8AC",
-        "#EFC050", "#5B5EA6", "#9B2335", "#DFCFBE", "#55B4B0"
-    ]
-    random.shuffle(color_pool)
-    color_iter = iter(color_pool)
-    color_map = {}
-
-    for idx, row in df_user.iterrows():
-        content = str(row["内容"]).strip()
+    for _, row in df_user.iterrows():
         start = datetime.strptime(row["開始"], "%H:%M")
         end = datetime.strptime(row["終了"], "%H:%M")
         start_hour = start.hour + start.minute / 60
         end_hour = end.hour + end.minute / 60
-        if end_hour < start_hour:
-            end_hour += 24
 
-        duration = end_hour - start_hour
+        if end_hour < start_hour:
+            end_hour += 24  # 深夜跨ぎ対応
+
+        # 角度計算（0:00を90度＝真上に）
         start_angle = (90 - (start_hour / 24) * 360) % 360
         end_angle = (90 - (end_hour / 24) * 360) % 360
+
+        # 時計回りに描画
         if end_angle > start_angle:
             end_angle -= 360
 
-        # 色の割当（空白なら白）
-        if content == "" or content.lower() == "nan":
-            color = "white"
-        else:
-            if content not in color_map:
-                color_map[content] = next(color_iter, "#CCCCCC")
-            color = color_map[content]
-
-        # 予定ブロック
         wedge = Wedge((0, 0), 1.0, theta1=start_angle, theta2=end_angle,
-                      facecolor=color, edgecolor='black', linewidth=1.2)
+                      facecolor='lightblue', edgecolor='black', linewidth=1.5)
         ax.add_patch(wedge)
 
-        # 区切り線
-        rad = np.radians(start_angle)
-        ax.plot([0, np.cos(rad)], [0, np.sin(rad)], color='black', linewidth=1)
+        # ラベル表示（中央角を計算）
+        mid_angle = (start_angle + end_angle) / 2
+        rad = (mid_angle / 180) * 3.14159
+        x = 0.7 * np.cos(rad)
+        y = 0.7 * np.sin(rad)
+        ax.text(x, y, row["内容"], ha='center', va='center', fontsize=9)
 
-        # 開始時刻ラベル（近め）
-        x_label = 1.07 * np.cos(rad)
-        y_label = 1.07 * np.sin(rad)
-        ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7, color='black')
-
-        if content != "" and content.lower() != "nan":
-            mid_angle = (start_angle + end_angle) / 2
-            mid_rad = np.radians(mid_angle)
-
-            if duration <= 1:
-                # 外ラベル（線は扇の中点から外へ）
-                x_inner = 0.6 * np.cos(mid_rad)
-                y_inner = 0.6 * np.sin(mid_rad)
-                x_outer = 1.35 * np.cos(mid_rad)
-                y_outer = 1.35 * np.sin(mid_rad)
-                ax.plot([x_inner * 1.05, x_outer], [y_inner * 1.05, y_outer], color='black', linewidth=0.8)
-                ax.text(x_outer, y_outer, content, ha='center', va='center', fontsize=8, color='black')
-            else:
-                # 内ラベル（少し内側）
-                x = 0.55 * np.cos(mid_rad)
-                y = 0.55 * np.sin(mid_rad)
-                ax.text(x, y, content, ha='center', va='center', fontsize=8, color='black')
-
-    ax.set_title(f"{user_name} の予定（0時が真上）", fontsize=12)
+    ax.set_title(f"{user_name} の24時間予定図（0時が真上）")
     st.pyplot(fig)
-
 
 
 
