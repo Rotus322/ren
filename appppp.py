@@ -9,24 +9,17 @@ import numpy as np
 def plot_circular_schedule(df_user, user_name):
     import matplotlib.colors as mcolors
     import itertools
+    import random
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'aspect': 'equal'})
     ax.set_xlim(-1.5, 1.5)
     ax.set_ylim(-1.5, 1.5)
     ax.axis('off')
 
-    # カテゴリ別カラー辞書
-    category_colors = {
-        'ごはん': 'orange',
-        '勉強': 'skyblue',
-        '就寝': 'lightgray',
-        '移動': 'lightgreen',
-        '入浴': 'plum',
-        '電話': 'khaki',
-        '自由': 'salmon'
-    }
-    custom_colors = ["red", "yellow", "blue", "green", "pink", "cyan"]
-    fallback_colors = itertools.cycle(custom_colors)
-    color_map = {}  # 内容→色 の割り当て
+    # カラー候補から重複しないよう順に使う
+    all_colors = list(mcolors.TABLEAU_COLORS.values()) + list(mcolors.CSS4_COLORS.values())
+    random.shuffle(all_colors)
+    used_colors = iter(all_colors)
+    color_map = {}  # 内容→色 の割り当て（重複なし）
 
     for idx, row in df_user.iterrows():
         content = row["内容"].strip()
@@ -43,15 +36,10 @@ def plot_circular_schedule(df_user, user_name):
         if end_angle > start_angle:
             end_angle -= 360
 
-        # 色割り当て
-        if content == "":
-            color = "white"
-        elif content in category_colors:
-            color = category_colors[content]
-        else:
-            if content not in color_map:
-                color_map[content] = next(fallback_colors)
-            color = color_map[content]
+        # 内容別に一度きりの色を割り当て
+        if content not in color_map:
+            color_map[content] = next(used_colors)
+        color = color_map[content] if content != "" else "white"
 
         # 予定ブロック
         wedge = Wedge((0, 0), 1.0, theta1=start_angle, theta2=end_angle,
@@ -67,12 +55,12 @@ def plot_circular_schedule(df_user, user_name):
         y_label = 1.05 * np.sin(rad)
         ax.text(x_label, y_label, row["開始"], ha='center', va='center', fontsize=7)
 
-        # ラベル表示位置と線（1時間未満のみ外）
+        # ラベル表示（1時間以下は外に、超えたら内に）
         if content != "":
             mid_angle = (start_angle + end_angle) / 2
             mid_rad = np.radians(mid_angle)
-            if duration < 1:
-                # 外ラベルと線
+            if duration <= 1:
+                # 外ラベル
                 x_mid = 0.8 * np.cos(mid_rad)
                 y_mid = 0.8 * np.sin(mid_rad)
                 x_outer = 1.35 * np.cos(mid_rad)
@@ -87,6 +75,7 @@ def plot_circular_schedule(df_user, user_name):
 
     ax.set_title(f"{user_name} の予定（0時が真上）", fontsize=12)
     st.pyplot(fig)
+
 
 
 
