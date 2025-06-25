@@ -172,8 +172,8 @@ def plot_user_schedule(df, user_name, selected_date):
     # 誤差を吸収した上で24時扱いに
         h_rounded = round(h, 4)
         angle_h = 90 - (h_rounded / 24) * 360
-        x = 1.15 * np.cos(np.radians(angle_h))
-        y = 1.15 * np.sin(np.radians(angle_h))
+        x = 1.5 * np.cos(np.radians(angle_h))
+        y = 1.5 * np.sin(np.radians(angle_h))
 
         if abs(h - 24.0) < 1e-2:
             h = 0.0
