@@ -3,8 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, time, date
 import matplotlib_fontja
+import numpy as np
+from matplotlib.patches import ConnectionPatch
+
 st.set_page_config(page_title="予定アプリ", layout="centered")
-st.title("🗓️ 予定アプリ")
+st.title("\U0001F4C5 予定アプリ")
 
 # --- 初期設定 ---
 if "schedule_count" not in st.session_state:
@@ -14,12 +17,12 @@ def add_schedule():
     st.session_state.schedule_count += 1
 
 # ---------- 提出フォーム ----------
-st.header("📩 予定を提出")
+st.header("\U0001F4E9 予定を提出")
 
 name = st.selectbox("名前を選んでください", ["れん", "ゆみ"])
 selected_date = st.date_input("予定の日付", value=date.today())
 
-st.write("📝 時間と内容を指定してください")
+st.write("\U0001F4DD 時間と内容を指定してください")
 
 schedule_data = []
 
@@ -71,9 +74,6 @@ if st.button("提出"):
 
 # ---------- グラフ表示 ----------
 def plot_user_schedule(df, user_name, selected_date):
-    import numpy as np
-    from matplotlib.patches import ConnectionPatch
-
     df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
     if df_user.empty:
         st.warning(f"{user_name} の予定が見つかりませんでした。")
@@ -162,7 +162,6 @@ def plot_user_schedule(df, user_name, selected_date):
 
         angle -= dur / total * 360
 
-    # 時間ラベルを外周に描画
     for h in sorted(set(time_points)):
         h_rounded = round(h, 4)
         if abs(h_rounded - 24.0) < 1e-2:
@@ -178,25 +177,23 @@ def plot_user_schedule(df, user_name, selected_date):
 
     st.pyplot(fig)
 
-st.header("📊 円グラフで予定を比較")
+st.header("\U0001F4CA 円グラフで予定を比較")
 view_date = st.date_input("表示する日付を選択", value=date.today(), key="view_date")
 
 try:
     df = pd.read_csv("schedules.csv")
-
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("🧑 れん")
+        st.subheader("\U0001F9D1 れん")
         plot_user_schedule(df, "れん", view_date)
     with col2:
-        st.subheader("👩 ゆみ")
+        st.subheader("\U0001F469 ゆみ")
         plot_user_schedule(df, "ゆみ", view_date)
-
 except FileNotFoundError:
     st.info("まだ誰も予定を提出していません。")
-# ---------- 削除機能 ----------
-st.header("🗑️ 予定の削除")
 
+# ---------- 削除機能 ----------
+st.header("\U0001F5D1️ 予定の削除")
 try:
     df = pd.read_csv("schedules.csv")
     del_date = st.date_input("削除したい日付を選んでください", value=date.today(), key="delete_date")
@@ -208,11 +205,10 @@ try:
     else:
         for i, row in df_filtered.iterrows():
             delete_label = f'{row["名前"]} / {row["内容"]} ({row["開始"]}-{row["終了"]})'
-            if st.button(f"🗑️ 削除：{delete_label}", key=f"delete_{i}"):
+            if st.button(f"\U0001F5D1️ 削除：{delete_label}", key=f"delete_{i}"):
                 df.drop(index=i, inplace=True)
                 df.to_csv("schedules.csv", index=False)
                 st.success("✅ 削除しました！ページを更新してください。")
                 st.stop()
-
 except FileNotFoundError:
     st.info("まだ予定は登録されていません。")
