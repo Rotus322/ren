@@ -7,19 +7,22 @@ import numpy as np
 from matplotlib.patches import ConnectionPatch
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-
+import json
 
 
 
 SPREADSHEET_ID = "1T-7Ue8nHolwx9KrK0vdsqMYINxdbj830NnQ1TVoka8M"  # ←変更必須！
 
 def get_worksheet():
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('myscheduleapp-464114-a672362551fc.json', scope)
+    scope = [
+        'https://spreadsheets.google.com/feeds',
+        'https://www.googleapis.com/auth/drive'
+    ]
+    creds_dict = json.loads(st.secrets["gcp_service_account"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
     sheet = client.open_by_key(SPREADSHEET_ID)
-    worksheet = sheet.sheet1
-    return worksheet
+    return sheet.sheet1
 
 def append_schedule_to_gsheet(entries):
     worksheet = get_worksheet()
