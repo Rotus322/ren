@@ -72,7 +72,7 @@ if st.button("提出"):
 # ---------- グラフ表示 ----------
 def plot_user_schedule(df, user_name, selected_date):
     import numpy as np
-    from datetime import datetime
+    from matplotlib.patches import ConnectionPatch
 
     df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
     if df_user.empty:
@@ -81,10 +81,11 @@ def plot_user_schedule(df, user_name, selected_date):
 
     df_user_sorted = df_user.sort_values(by="開始")
 
-    sizes = []
     labels = []
+    sizes = []
     colors = []
-    time_marks = []
+    raw_labels = []
+    time_points = []
 
     def to_hour(tstr):
         t = datetime.strptime(tstr, "%H:%M")
@@ -97,64 +98,85 @@ def plot_user_schedule(df, user_name, selected_date):
     ]
     color_index = 0
 
-    for i, row in df_user_sorted.iterrows():
+    for _, row in df_user_sorted.iterrows():
         start = to_hour(row["開始"])
         end = to_hour(row["終了"])
 
-        # 空き時間
         if start > current_time:
+            labels.append("")
+            raw_labels.append("（空き）")
             sizes.append(start - current_time)
-            labels.append("（空き）")
             colors.append("lightgray")
-            time_marks.append(current_time)
+            time_points.append(current_time)
+            time_points.append(start)
 
-        # 予定
-        sizes.append(end - start)
-        labels.append(f'{row["内容"]}')
+        dur = end - start
+        labels.append("")
+        raw_labels.append(f'{row["内容"]}')
+        sizes.append(dur)
         colors.append(color_palette[color_index % len(color_palette)])
-        time_marks.append(start)
         color_index += 1
+        time_points.append(start)
+        time_points.append(end)
 
         current_time = end
 
-    # 最後に24時まで空き時間
     if current_time < 24.0:
+        labels.append("")
+        raw_labels.append("（空き）")
         sizes.append(24.0 - current_time)
-        labels.append("（空き）")
         colors.append("lightgray")
-        time_marks.append(current_time)
-        time_marks.append(24.0)
+        time_points.append(current_time)
+        time_points.append(24.0)
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    wedges, _ = ax.pie(
-        sizes,
-        labels=None,  # ラベルは自前で描画
-        startangle=90,
-        counterclock=False,
-        colors=colors
-    )
-    ax.set_title(f"{user_name} の予定（空き時間込み・時間通り）")
+    wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
 
-    # 時間ラベルを区切りに表示
-    for h in sorted(set(time_marks)):
-        angle = 90 - (h / 24) * 360
-        x = 1.15 * np.cos(np.radians(angle))
-        y = 1.15 * np.sin(np.radians(angle))
-        ax.text(x, y, f"{int(h):02d}:{int((h % 1)*60):02d}", ha="center", va="center", fontsize=8)
+    ax.set_title(f"{user_name} の予定（時間通り＋外ラベル）")
 
-    # 中心 or 外にラベルを表示
     total = sum(sizes)
     angle = 90
-    for i, size in enumerate(sizes):
-        mid_angle = angle - (size / 2 / total) * 360
-        x = 0.6 * np.cos(np.radians(mid_angle))
-        y = 0.6 * np.sin(np.radians(mid_angle))
-        if labels[i] != "（空き）":
-            ax.text(x, y, labels[i], ha="center", va="center", fontsize=8)
-        angle -= size / total * 360
+    radius = 1
+
+    for i, wedge in enumerate(wedges):
+        dur = sizes[i]
+        label = raw_labels[i]
+
+        if not label or label == "（空き）":
+            angle -= dur / total * 360
+            continue
+
+        theta = angle - (dur / 2 / total) * 360
+        x = radius * 0.6 * np.cos(np.radians(theta))
+        y = radius * 0.6 * np.sin(np.radians(theta))
+
+        if dur >= 1.0:
+            ax.text(x, y, label, ha="center", va="center", fontsize=8, color="black")
+        else:
+            x0 = radius * 0.8 * np.cos(np.radians(theta))
+            y0 = radius * 0.8 * np.sin(np.radians(theta))
+            x1 = radius * 1.2 * np.cos(np.radians(theta))
+            y1 = radius * 1.2 * np.sin(np.radians(theta))
+            ax.plot([x0, x1], [y0, y1], color="black", linewidth=0.8)
+            ax.text(x1, y1, label, ha="center", va="center", fontsize=8, color="black")
+
+        angle -= dur / total * 360
+
+    # 時間ラベルを外周に描画
+    for h in sorted(set(time_points)):
+        h_rounded = round(h, 4)
+        if abs(h_rounded - 24.0) < 1e-2:
+            h_rounded = 0.0
+
+        angle_h = 90 - (h_rounded / 24) * 360
+        x = 1.05 * np.cos(np.radians(angle_h))
+        y = 1.05 * np.sin(np.radians(angle_h))
+        hour = int(h_rounded)
+        minute = int(round((h_rounded % 1) * 60))
+        label = f"{hour:02d}:{minute:02d}"
+        ax.text(x, y, label, ha="center", va="center", fontsize=6)
 
     st.pyplot(fig)
-
 
 st.header("📊 円グラフで予定を比較")
 view_date = st.date_input("表示する日付を選択", value=date.today(), key="view_date")
