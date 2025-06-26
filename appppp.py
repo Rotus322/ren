@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, time, date
-
-st.set_page_config(page_title="予定提出", layout="centered")
-st.title("🗓️ 予定提出アプリ")
+import matplotlib_fontja
+st.set_page_config(page_title="予定提出＆可視化アプリ", layout="centered")
+st.title("🗓️ みんなの予定提出＆可視化アプリ")
 
 # --- 初期設定 ---
 if "schedule_count" not in st.session_state:
@@ -16,7 +16,7 @@ def add_schedule():
 # ---------- 提出フォーム ----------
 st.header("📩 予定を提出")
 
-name = st.selectbox("名前を選んでください", ["れん", "ゆみ"])
+name = st.selectbox("名前を選んでください", ["郡司島", "ゆみ"])
 selected_date = st.date_input("予定の日付", value=date.today())
 
 st.write("📝 時間と内容を指定してください")
@@ -71,126 +71,27 @@ if st.button("提出"):
 
 # ---------- グラフ表示 ----------
 def plot_user_schedule(df, user_name, selected_date):
-    import numpy as np
-    from matplotlib.patches import ConnectionPatch
-
     df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
     if df_user.empty:
         st.warning(f"{user_name} の予定が見つかりませんでした。")
         return
 
-    df_user_sorted = df_user.sort_values(by="開始")
-
     labels = []
     sizes = []
-    colors = []
-    raw_labels = []  # 後でラベル描画用
-    time_points = []
-    time_marks = []
 
-
-    def to_hour(tstr):
-        t = datetime.strptime(tstr, "%H:%M")
-        return t.hour + t.minute / 60
-
-    current_time = 0.0
-    color_palette = [
-        "#FF9999", "#FFCC99", "#99CCFF", "#99FF99", "#FFB3E6",
-        "#CCCCFF", "#FFFF99", "#FF6666", "#66CCCC", "#FF9966"
-    ]
-    color_index = 0
-
-    for _, row in df_user_sorted.iterrows():
-        start = to_hour(row["開始"])
-        end = to_hour(row["終了"])
-
-        # 空き時間
-        if start > current_time:
-            labels.append("")  # 空き時間はラベルなし
-            raw_labels.append("（空き）")
-            sizes.append(start - current_time)
-            colors.append("lightgray")
-            time_points.append(current_time)
-            time_points.append(start)
-            
-        # 予定本体
-        dur = end - start
-        labels.append("")  # 描画ラベルは自前でやる
-        raw_labels.append(f'{row["内容"]}')
-        sizes.append(dur)
-        colors.append(color_palette[color_index % len(color_palette)])
-        color_index += 1
-        time_points.append(start)
-        time_points.append(end)
-
-        current_time = end
-
-    if current_time < 24.0:
-        labels.append("")
-        raw_labels.append("（空き）")
-        sizes.append(24.0 - current_time)
-        colors.append("lightgray")
-        time_points.append(current_time)
-        time_points.append(24.0)
-        
-
-    fig, ax = plt.subplots(figsize=(6, 6))
-    wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
-
-    ax.set_title(f"{user_name} の予定（外ラベル表示対応）")
-
-    total = sum(sizes)
-    angle = 90  # Start from top (0:00)
-    radius = 1  # default pie radius
-
-    for i, wedge in enumerate(wedges):
-        dur = sizes[i]
-        label = raw_labels[i]
-
-        if not label or label == "（空き）":
+    for _, row in df_user.iterrows():
+        start = datetime.strptime(row["開始"], "%H:%M")
+        end = datetime.strptime(row["終了"], "%H:%M")
+        duration = (end - start).seconds / 3600
+        if duration <= 0:
             continue
 
-        theta = angle - (dur / 2 / total) * 360  # 中央角
-        x = radius * 0.6 * np.cos(np.radians(theta))
-        y = radius * 0.6 * np.sin(np.radians(theta))
+        labels.append(f'{row["内容"]} ({row["開始"]}-{row["終了"]})')
+        sizes.append(duration)
 
-        if dur >= 1.0:
-            # ラベルを内部に描画
-            ax.text(x, y, label, ha="center", va="center", fontsize=8, color="black")
-        else:
-            # 外側へ線を引いて描画
-            x0 = radius * 0.8 * np.cos(np.radians(theta))
-            y0 = radius * 0.8 * np.sin(np.radians(theta))
-            x1 = radius * 1.2 * np.cos(np.radians(theta))
-            y1 = radius * 1.2 * np.sin(np.radians(theta))
-            ax.plot([x0, x1], [y0, y1], color="black", linewidth=0.8)
-            ax.text(x1, y1, label, ha="center", va="center", fontsize=8, color="black")
-
-        angle -= dur / total * 360  # 次の扇へ
-    # --- 重複排除・ソート ---
-    time_points = sorted(set(time_points))
-
-    # --- 区切り時間表示 ---
-    for h in sorted(set(time_points)):
-    # 誤差を吸収した上で24時扱いに
-        h_rounded = round(h, 4)
-        angle_h = 90 - (h_rounded / 24) * 360
-        x = 1.15 * np.cos(np.radians(angle_h))
-        y = 1.15 * np.sin(np.radians(angle_h))
-
-        if abs(h - 24.0) < 1e-2:
-            h = 0.0
-
-        angle_h = 90 - (h / 24) * 360
-        x = 1.0 * np.cos(np.radians(angle_h))
-        y = 1.0 * np.sin(np.radians(angle_h))
-
-        hour = int(h)
-        minute = int(round((h % 1) * 60))
-        label = f"{hour:02d}:{minute:02d}"
-
-        ax.text(x, y, label, ha="center", va="center", fontsize=6)
-
+    fig, ax = plt.subplots(figsize=(5, 5))
+    ax.pie(sizes, labels=labels, startangle=90, counterclock=False)
+    ax.set_title(f"{user_name} の予定")
     st.pyplot(fig)
 
 st.header("📊 円グラフで予定を比較")
@@ -201,15 +102,14 @@ try:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("🧑 れん")
-        plot_user_schedule(df, "れん", view_date)
+        st.subheader("🧑 郡司島")
+        plot_user_schedule(df, "郡司島", view_date)
     with col2:
         st.subheader("👩 ゆみ")
         plot_user_schedule(df, "ゆみ", view_date)
 
 except FileNotFoundError:
     st.info("まだ誰も予定を提出していません。")
-
 # ---------- 削除機能 ----------
 st.header("🗑️ 予定の削除")
 
@@ -232,4 +132,3 @@ try:
 
 except FileNotFoundError:
     st.info("まだ予定は登録されていません。")
-
