@@ -17,7 +17,7 @@ def add_schedule():
 
 st.header("\U0001F4E9 予定を提出")
 
-name = st.selectbox("名前を選んでください", ["れ", "ゆみ"])
+name = st.selectbox("名前を選んでください", ["れん", "ゆみ"])
 selected_date = st.date_input("予定の日付", value=date.today())
 
 st.write("\U0001F4DD 時間と内容を指定してください")
