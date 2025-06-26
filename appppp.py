@@ -86,6 +86,8 @@ def plot_user_schedule(df, user_name, selected_date):
     colors = []
     raw_labels = []  # 後でラベル描画用
     time_points = []
+    time_marks = []
+
 
     def to_hour(tstr):
         t = datetime.strptime(tstr, "%H:%M")
@@ -110,6 +112,7 @@ def plot_user_schedule(df, user_name, selected_date):
             colors.append("lightgray")
             time_points.append(current_time)
             time_points.append(start)
+            time_marks.append(current_time)
 
         # 予定本体
         dur = end - start
@@ -117,6 +120,7 @@ def plot_user_schedule(df, user_name, selected_date):
         raw_labels.append(f'{row["内容"]}')
         sizes.append(dur)
         colors.append(color_palette[color_index % len(color_palette)])
+        time_marks.append(start)
         color_index += 1
         time_points.append(start)
         time_points.append(end)
@@ -130,6 +134,8 @@ def plot_user_schedule(df, user_name, selected_date):
         colors.append("lightgray")
         time_points.append(current_time)
         time_points.append(24.0)
+        time_marks.append(current_time)
+        time_marks.append(24.0)
 
     fig, ax = plt.subplots(figsize=(6, 6))
     wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
