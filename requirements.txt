@@ -6,4 +6,3 @@ matplotlib_fontja
 numpy
 gspread
 oauth2client
-json
