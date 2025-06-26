@@ -192,23 +192,48 @@ try:
 except FileNotFoundError:
     st.info("まだ誰も予定を提出していません。")
 
-# ---------- 削除機能 ----------
-st.header("\U0001F5D1️ 予定の削除")
+# ---------- 削除＆編集機能 ----------
+st.header("\U0001F5D1️ 予定の削除・編集")
 try:
     df = pd.read_csv("schedules.csv")
-    del_date = st.date_input("削除したい日付を選んでください", value=date.today(), key="delete_date")
-
-    df_filtered = df[df["日付"] == del_date.strftime("%Y-%m-%d")]
+    edit_date = st.date_input("対象の日付を選んでください", value=date.today(), key="edit_date")
+    df_filtered = df[df["日付"] == edit_date.strftime("%Y-%m-%d")]
 
     if df_filtered.empty:
-        st.info("この日には削除できる予定がありません。")
+        st.info("この日には予定がありません。")
     else:
-        for i, row in df_filtered.iterrows():
-            delete_label = f'{row["名前"]} / {row["内容"]} ({row["開始"]}-{row["終了"]})'
-            if st.button(f"\U0001F5D1️ 削除：{delete_label}", key=f"delete_{i}"):
-                df.drop(index=i, inplace=True)
-                df.to_csv("schedules.csv", index=False)
-                st.success("✅ 削除しました！ページを更新してください。")
-                st.stop()
+        selected_index = st.selectbox("編集・削除したい予定を選択してください",
+            df_filtered.index,
+            format_func=lambda i: f'{df_filtered.loc[i, "名前"]} / {df_filtered.loc[i, "内容"]} ({df_filtered.loc[i, "開始"]}-{df_filtered.loc[i, "終了"]})')
+
+        selected_row = df.loc[selected_index]
+
+        with st.form("edit_form"):
+            new_name = st.selectbox("名前", ["れん", "ゆみ"], index=["れん", "ゆみ"].index(selected_row["名前"]))
+            new_date = st.date_input("日付", value=pd.to_datetime(selected_row["日付"]))
+            new_start = st.time_input("開始時間", value=datetime.strptime(selected_row["開始"], "%H:%M").time())
+            new_end = st.time_input("終了時間", value=datetime.strptime(selected_row["終了"], "%H:%M").time())
+            new_content = st.text_input("内容", value=selected_row["内容"])
+            col1, col2 = st.columns(2)
+            with col1:
+                update = st.form_submit_button("更新")
+            with col2:
+                delete = st.form_submit_button("削除")
+
+        if update:
+            df.at[selected_index, "名前"] = new_name
+            df.at[selected_index, "日付"] = new_date.strftime("%Y-%m-%d")
+            df.at[selected_index, "開始"] = new_start.strftime("%H:%M")
+            df.at[selected_index, "終了"] = new_end.strftime("%H:%M")
+            df.at[selected_index, "内容"] = new_content
+            df.to_csv("schedules.csv", index=False)
+            st.success("✅ 更新しました！")
+            st.experimental_rerun()
+
+        if delete:
+            df.drop(index=selected_index, inplace=True)
+            df.to_csv("schedules.csv", index=False)
+            st.success("✅ 削除しました！")
+            st.experimental_rerun()
 except FileNotFoundError:
     st.info("まだ予定は登録されていません。")
