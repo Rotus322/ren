@@ -71,28 +71,90 @@ if st.button("提出"):
 
 # ---------- グラフ表示 ----------
 def plot_user_schedule(df, user_name, selected_date):
+    import numpy as np
+    from datetime import datetime
+
     df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
     if df_user.empty:
         st.warning(f"{user_name} の予定が見つかりませんでした。")
         return
 
-    labels = []
+    df_user_sorted = df_user.sort_values(by="開始")
+
     sizes = []
+    labels = []
+    colors = []
+    time_marks = []
 
-    for _, row in df_user.iterrows():
-        start = datetime.strptime(row["開始"], "%H:%M")
-        end = datetime.strptime(row["終了"], "%H:%M")
-        duration = (end - start).seconds / 3600
-        if duration <= 0:
-            continue
+    def to_hour(tstr):
+        t = datetime.strptime(tstr, "%H:%M")
+        return t.hour + t.minute / 60
 
-        labels.append(f'{row["内容"]} ({row["開始"]}-{row["終了"]})')
-        sizes.append(duration)
+    current_time = 0.0
+    color_palette = [
+        "#FF9999", "#FFCC99", "#99CCFF", "#99FF99", "#FFB3E6",
+        "#CCCCFF", "#FFFF99", "#FF6666", "#66CCCC", "#FF9966"
+    ]
+    color_index = 0
 
-    fig, ax = plt.subplots(figsize=(5, 5))
-    ax.pie(sizes, labels=labels, startangle=90, counterclock=False)
-    ax.set_title(f"{user_name} の予定")
+    for i, row in df_user_sorted.iterrows():
+        start = to_hour(row["開始"])
+        end = to_hour(row["終了"])
+
+        # 空き時間
+        if start > current_time:
+            sizes.append(start - current_time)
+            labels.append("（空き）")
+            colors.append("lightgray")
+            time_marks.append(current_time)
+
+        # 予定
+        sizes.append(end - start)
+        labels.append(f'{row["内容"]}\n{row["開始"]}-{row["終了"]}')
+        colors.append(color_palette[color_index % len(color_palette)])
+        time_marks.append(start)
+        color_index += 1
+
+        current_time = end
+
+    # 最後に24時まで空き時間
+    if current_time < 24.0:
+        sizes.append(24.0 - current_time)
+        labels.append("（空き）")
+        colors.append("lightgray")
+        time_marks.append(current_time)
+        time_marks.append(24.0)
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    wedges, _ = ax.pie(
+        sizes,
+        labels=None,  # ラベルは自前で描画
+        startangle=90,
+        counterclock=False,
+        colors=colors
+    )
+    ax.set_title(f"{user_name} の予定（空き時間込み・時間通り）")
+
+    # 時間ラベルを区切りに表示
+    for h in sorted(set(time_marks)):
+        angle = 90 - (h / 24) * 360
+        x = 1.15 * np.cos(np.radians(angle))
+        y = 1.15 * np.sin(np.radians(angle))
+        ax.text(x, y, f"{int(h):02d}:{int((h % 1)*60):02d}", ha="center", va="center", fontsize=8)
+
+    # 中心 or 外にラベルを表示
+    total = sum(sizes)
+    angle = 90
+    for i, size in enumerate(sizes):
+        mid_angle = angle - (size / 2 / total) * 360
+        x = 0.6 * np.cos(np.radians(mid_angle))
+        y = 0.6 * np.sin(np.radians(mid_angle))
+        if labels[i] != "（空き）":
+            ax.text(x, y, labels[i], ha="center", va="center", fontsize=8)
+        angle -= size / total * 360
+
     st.pyplot(fig)
+
 
 st.header("📊 円グラフで予定を比較")
 view_date = st.date_input("表示する日付を選択", value=date.today(), key="view_date")
