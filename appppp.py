@@ -9,14 +9,12 @@ from matplotlib.patches import ConnectionPatch
 st.set_page_config(page_title="予定アプリ", layout="centered")
 st.title("\U0001F4C5 予定アプリ")
 
-# --- 初期設定 ---
 if "schedule_count" not in st.session_state:
     st.session_state.schedule_count = 1
 
 def add_schedule():
     st.session_state.schedule_count += 1
 
-# ---------- 提出フォーム ----------
 st.header("\U0001F4E9 予定を提出")
 
 name = st.selectbox("名前を選んでください", ["れん", "ゆみ"])
@@ -30,17 +28,22 @@ for i in range(st.session_state.schedule_count):
     st.subheader(f"予定 {i + 1}")
     col1, col2 = st.columns(2)
     with col1:
-        start_time = st.time_input("開始時間", key=f"start_{i}", value=time(9, 0))
+        hour = st.selectbox("開始時", list(range(0, 24)), key=f"sh_{i}")
+        minute = st.selectbox("開始分", list(range(0, 60, 5)), key=f"sm_{i}")
+        start_time = time(hour, minute)
     with col2:
-        end_time = st.time_input("終了時間", key=f"end_{i}", value=time(10, 0))
+        hour_e = st.selectbox("終了時", list(range(0, 25)), key=f"eh_{i}")
+        minute_e = st.selectbox("終了分", list(range(0, 60, 5)), key=f"em_{i}")
+        if hour_e == 24:
+            end_time = time(23, 59)
+        else:
+            end_time = time(hour_e, minute_e)
 
     content = st.text_input("内容（例：朝ご飯・勉強など）", key=f"content_{i}")
     schedule_data.append((start_time, end_time, content))
 
-# ➕ 予定追加ボタン
 st.button("➕ 予定を追加", on_click=add_schedule)
 
-# ✅ 提出ボタン
 if st.button("提出"):
     new_entries = []
     for (start_time, end_time, content) in schedule_data:
@@ -72,7 +75,6 @@ if st.button("提出"):
     else:
         st.warning("有効な予定が入力されていません。")
 
-# ---------- グラフ表示 ----------
 def plot_user_schedule(df, user_name, selected_date):
     df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
     if df_user.empty:
@@ -88,6 +90,8 @@ def plot_user_schedule(df, user_name, selected_date):
     time_points = []
 
     def to_hour(tstr):
+        if tstr == "23:59":
+            return 24.0
         t = datetime.strptime(tstr, "%H:%M")
         return t.hour + t.minute / 60
 
@@ -192,7 +196,6 @@ try:
 except FileNotFoundError:
     st.info("まだ誰も予定を提出していません。")
 
-# ---------- 削除＆編集機能 ----------
 st.header("\U0001F5D1️ 予定の削除・編集")
 try:
     df = pd.read_csv("schedules.csv")
