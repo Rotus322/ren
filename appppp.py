@@ -1,34 +1,79 @@
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-from datetime import datetime, date
-import os
+from datetime import datetime, time, date
 
-# CSVファイル名
-CSV_FILE = "schedule.csv"
+st.set_page_config(page_title="予定提出", layout="centered")
+st.title("🗓️ 予定提出アプリ")
 
-# 初期データフレーム作成
-def load_data():
-    if os.path.exists(CSV_FILE):
-        return pd.read_csv(CSV_FILE)
+# --- 初期設定 ---
+if "schedule_count" not in st.session_state:
+    st.session_state.schedule_count = 1
+
+def add_schedule():
+    st.session_state.schedule_count += 1
+
+# ---------- 提出フォーム ----------
+st.header("📩 予定を提出")
+
+name = st.selectbox("名前を選んでください", ["れん", "ゆみ"])
+selected_date = st.date_input("予定の日付", value=date.today())
+
+st.write("📝 時間と内容を指定してください")
+
+schedule_data = []
+
+for i in range(st.session_state.schedule_count):
+    st.subheader(f"予定 {i + 1}")
+    col1, col2 = st.columns(2)
+    with col1:
+        start_time = st.time_input("開始時間", key=f"start_{i}", value=time(9, 0))
+    with col2:
+        end_time = st.time_input("終了時間", key=f"end_{i}", value=time(10, 0))
+
+    content = st.text_input("内容（例：朝ご飯・勉強など）", key=f"content_{i}")
+    schedule_data.append((start_time, end_time, content))
+
+# ➕ 予定追加ボタン
+st.button("➕ 予定を追加", on_click=add_schedule)
+
+# ✅ 提出ボタン
+if st.button("提出"):
+    new_entries = []
+    for (start_time, end_time, content) in schedule_data:
+        if not content.strip():
+            continue
+        if end_time <= start_time:
+            st.warning(f"{content} の時間設定が無効です（開始 ≥ 終了）")
+            continue
+
+        new_entries.append({
+            "日時": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "名前": name,
+            "日付": selected_date.strftime("%Y-%m-%d"),
+            "開始": start_time.strftime("%H:%M"),
+            "終了": end_time.strftime("%H:%M"),
+            "内容": content.strip()
+        })
+
+    if new_entries:
+        new_df = pd.DataFrame(new_entries)
+        try:
+            existing = pd.read_csv("schedules.csv")
+            all_data = pd.concat([existing, new_df], ignore_index=True)
+        except FileNotFoundError:
+            all_data = new_df
+
+        all_data.to_csv("schedules.csv", index=False)
+        st.success(f"✅ {len(new_entries)} 件の予定を登録しました！")
     else:
-        return pd.DataFrame(columns=["名前", "日付", "開始", "終了", "内容"])
+        st.warning("有効な予定が入力されていません。")
 
-# 時刻文字列 → float時間（24:00対応）
-def time_str_to_float(tstr):
-    return 24.0 if tstr == "24:00" else int(tstr[:2]) + int(tstr[3:]) / 60
-
-# 表示用：24:00 → 00:00
-def time_display_label(tstr):
-    return "00:00" if tstr == "24:00" else tstr
-
-# 時刻オプション（30分刻み）
-time_options = [f"{h:02d}:{m:02d}" for h in range(24) for m in (0, 30)] + ["24:00"]
-
-# 円グラフ描画関数
+# ---------- グラフ表示 ----------
 def plot_user_schedule(df, user_name, selected_date):
+    import numpy as np
+    from matplotlib.patches import ConnectionPatch
+
     df_user = df[(df["名前"] == user_name) & (df["日付"] == selected_date.strftime("%Y-%m-%d"))]
     if df_user.empty:
         st.warning(f"{user_name} の予定が見つかりませんでした。")
@@ -39,8 +84,14 @@ def plot_user_schedule(df, user_name, selected_date):
     labels = []
     sizes = []
     colors = []
-    raw_labels = []
+    raw_labels = []  # 後でラベル描画用
     time_points = []
+    time_marks = []
+
+
+    def to_hour(tstr):
+        t = datetime.strptime(tstr, "%H:%M")
+        return t.hour + t.minute / 60
 
     current_time = 0.0
     color_palette = [
@@ -50,19 +101,21 @@ def plot_user_schedule(df, user_name, selected_date):
     color_index = 0
 
     for _, row in df_user_sorted.iterrows():
-        start = time_str_to_float(row["開始"])
-        end = time_str_to_float(row["終了"])
+        start = to_hour(row["開始"])
+        end = to_hour(row["終了"])
 
+        # 空き時間
         if start > current_time:
-            labels.append("")
+            labels.append("")  # 空き時間はラベルなし
             raw_labels.append("（空き）")
             sizes.append(start - current_time)
             colors.append("lightgray")
             time_points.append(current_time)
             time_points.append(start)
-
+            
+        # 予定本体
         dur = end - start
-        labels.append("")
+        labels.append("")  # 描画ラベルは自前でやる
         raw_labels.append(f'{row["内容"]}')
         sizes.append(dur)
         colors.append(color_palette[color_index % len(color_palette)])
@@ -79,29 +132,33 @@ def plot_user_schedule(df, user_name, selected_date):
         colors.append("lightgray")
         time_points.append(current_time)
         time_points.append(24.0)
+        
 
     fig, ax = plt.subplots(figsize=(6, 6))
     wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
-    ax.set_title(f"{user_name} の予定")
+
+    ax.set_title(f"{user_name} の予定（外ラベル表示対応）")
 
     total = sum(sizes)
-    angle = 90
-    radius = 1
+    angle = 90  # Start from top (0:00)
+    radius = 1  # default pie radius
 
     for i, wedge in enumerate(wedges):
         dur = sizes[i]
         label = raw_labels[i]
 
         if not label or label == "（空き）":
-            angle -= dur / total * 360
             continue
 
-        theta = angle - (dur / 2 / total) * 360
+        theta = angle - (dur / 2 / total) * 360  # 中央角
+        x = radius * 0.6 * np.cos(np.radians(theta))
+        y = radius * 0.6 * np.sin(np.radians(theta))
+
         if dur >= 1.0:
-            x = radius * 0.6 * np.cos(np.radians(theta))
-            y = radius * 0.6 * np.sin(np.radians(theta))
+            # ラベルを内部に描画
             ax.text(x, y, label, ha="center", va="center", fontsize=8, color="black")
         else:
+            # 外側へ線を引いて描画
             x0 = radius * 0.8 * np.cos(np.radians(theta))
             y0 = radius * 0.8 * np.sin(np.radians(theta))
             x1 = radius * 1.2 * np.cos(np.radians(theta))
@@ -109,64 +166,70 @@ def plot_user_schedule(df, user_name, selected_date):
             ax.plot([x0, x1], [y0, y1], color="black", linewidth=0.8)
             ax.text(x1, y1, label, ha="center", va="center", fontsize=8, color="black")
 
-        angle -= dur / total * 360
+        angle -= dur / total * 360  # 次の扇へ
+    # --- 重複排除・ソート ---
+    time_points = sorted(set(time_points))
 
+    # --- 区切り時間表示 ---
     for h in sorted(set(time_points)):
+    # 誤差を吸収した上で24時扱いに
         h_rounded = round(h, 4)
-        if abs(h_rounded - 24.0) < 1e-2:
-            h_rounded = 0.0
-
         angle_h = 90 - (h_rounded / 24) * 360
-        x = 1.05 * np.cos(np.radians(angle_h))
-        y = 1.05 * np.sin(np.radians(angle_h))
-        hour = int(h_rounded)
-        minute = int(round((h_rounded % 1) * 60))
+        x = 1.15 * np.cos(np.radians(angle_h))
+        y = 1.15 * np.sin(np.radians(angle_h))
+
+        if abs(h - 24.0) < 1e-2:
+            h = 0.0
+
+        angle_h = 90 - (h / 24) * 360
+        x = 1.0 * np.cos(np.radians(angle_h))
+        y = 1.0 * np.sin(np.radians(angle_h))
+
+        hour = int(h)
+        minute = int(round((h % 1) * 60))
         label = f"{hour:02d}:{minute:02d}"
+
         ax.text(x, y, label, ha="center", va="center", fontsize=6)
 
     st.pyplot(fig)
 
-# Streamlit アプリ本体
-st.title("🕒 円グラフ予定提出アプリ")
+st.header("📊 円グラフで予定を比較")
+view_date = st.date_input("表示する日付を選択", value=date.today(), key="view_date")
 
-data = load_data()
-name = st.selectbox("名前を選んでください", ["郡司島", "ゆみ"])
-selected_date = st.date_input("日付を選んでください", date.today())
+try:
+    df = pd.read_csv("schedules.csv")
 
-st.subheader("予定を追加")
-content = st.text_input("予定の内容")
-col1, col2 = st.columns(2)
-with col1:
-    start_time_str = st.selectbox("開始時間", time_options, key="start")
-with col2:
-    end_time_str = st.selectbox("終了時間", time_options, index=len(time_options)-1, key="end")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("🧑 れん")
+        plot_user_schedule(df, "れん", view_date)
+    with col2:
+        st.subheader("👩 ゆみ")
+        plot_user_schedule(df, "ゆみ", view_date)
 
-if st.button("予定を追加"):
-    display_start = time_display_label(start_time_str)
-    display_end = time_display_label(end_time_str)
-    new_row = {
-        "名前": name,
-        "日付": selected_date.strftime("%Y-%m-%d"),
-        "開始": display_start,
-        "終了": display_end,
-        "内容": content
-    }
-    data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
-    data.to_csv(CSV_FILE, index=False)
-    st.success("予定を追加しました！")
+except FileNotFoundError:
+    st.info("まだ誰も予定を提出していません。")
 
-st.subheader("予定の表示")
-plot_user_schedule(data, name, selected_date)
+# ---------- 削除機能 ----------
+st.header("🗑️ 予定の削除")
 
-st.subheader("予定の削除")
-df_filtered = data[(data["名前"] == name) & (data["日付"] == selected_date.strftime("%Y-%m-%d"))]
-if not df_filtered.empty:
-    for i, row in df_filtered.iterrows():
-        row_str = f'{row["開始"]}〜{row["終了"]} {row["内容"]}'
-        if st.button(f"削除: {row_str}", key=f"delete_{i}"):
-            data = data.drop(i).reset_index(drop=True)
-            data.to_csv(CSV_FILE, index=False)
-            st.success("予定を削除しました！")
-            st.experimental_rerun()
-else:
-    st.info("この日の予定はありません。")
+try:
+    df = pd.read_csv("schedules.csv")
+    del_date = st.date_input("削除したい日付を選んでください", value=date.today(), key="delete_date")
+
+    df_filtered = df[df["日付"] == del_date.strftime("%Y-%m-%d")]
+
+    if df_filtered.empty:
+        st.info("この日には削除できる予定がありません。")
+    else:
+        for i, row in df_filtered.iterrows():
+            delete_label = f'{row["名前"]} / {row["内容"]} ({row["開始"]}-{row["終了"]})'
+            if st.button(f"🗑️ 削除：{delete_label}", key=f"delete_{i}"):
+                df.drop(index=i, inplace=True)
+                df.to_csv("schedules.csv", index=False)
+                st.success("✅ 削除しました！ページを更新してください。")
+                st.stop()
+
+except FileNotFoundError:
+    st.info("まだ予定は登録されていません。")
+
