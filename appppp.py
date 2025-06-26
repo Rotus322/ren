@@ -132,7 +132,7 @@ def plot_user_schedule(df, user_name, selected_date):
     fig, ax = plt.subplots(figsize=(6, 6))
     wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
 
-    ax.set_title(f"{user_name} の予定（時間通り＋外ラベル）")
+    ax.set_title(f"{user_name} の予定")
 
     total = sum(sizes)
     angle = 90
