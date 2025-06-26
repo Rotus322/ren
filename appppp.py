@@ -84,10 +84,8 @@ def plot_user_schedule(df, user_name, selected_date):
     labels = []
     sizes = []
     colors = []
-    raw_labels = []  # 後でラベル描画用
+    raw_labels = []
     time_points = []
-    time_marks = []
-
 
     def to_hour(tstr):
         t = datetime.strptime(tstr, "%H:%M")
@@ -104,18 +102,16 @@ def plot_user_schedule(df, user_name, selected_date):
         start = to_hour(row["開始"])
         end = to_hour(row["終了"])
 
-        # 空き時間
         if start > current_time:
-            labels.append("")  # 空き時間はラベルなし
+            labels.append("")
             raw_labels.append("（空き）")
             sizes.append(start - current_time)
             colors.append("lightgray")
             time_points.append(current_time)
             time_points.append(start)
-            
-        # 予定本体
+
         dur = end - start
-        labels.append("")  # 描画ラベルは自前でやる
+        labels.append("")
         raw_labels.append(f'{row["内容"]}')
         sizes.append(dur)
         colors.append(color_palette[color_index % len(color_palette)])
@@ -132,33 +128,31 @@ def plot_user_schedule(df, user_name, selected_date):
         colors.append("lightgray")
         time_points.append(current_time)
         time_points.append(24.0)
-        
 
     fig, ax = plt.subplots(figsize=(6, 6))
     wedges, _ = ax.pie(sizes, startangle=90, counterclock=False, colors=colors)
 
-    ax.set_title(f"{user_name} の予定（外ラベル表示対応）")
+    ax.set_title(f"{user_name} の予定（時間通り＋外ラベル）")
 
     total = sum(sizes)
-    angle = 90  # Start from top (0:00)
-    radius = 1  # default pie radius
+    angle = 90
+    radius = 1
 
     for i, wedge in enumerate(wedges):
         dur = sizes[i]
         label = raw_labels[i]
 
         if not label or label == "（空き）":
+            angle -= dur / total * 360
             continue
 
-        theta = angle - (dur / 2 / total) * 360  # 中央角
+        theta = angle - (dur / 2 / total) * 360
         x = radius * 0.6 * np.cos(np.radians(theta))
         y = radius * 0.6 * np.sin(np.radians(theta))
 
         if dur >= 1.0:
-            # ラベルを内部に描画
             ax.text(x, y, label, ha="center", va="center", fontsize=8, color="black")
         else:
-            # 外側へ線を引いて描画
             x0 = radius * 0.8 * np.cos(np.radians(theta))
             y0 = radius * 0.8 * np.sin(np.radians(theta))
             x1 = radius * 1.2 * np.cos(np.radians(theta))
@@ -166,29 +160,20 @@ def plot_user_schedule(df, user_name, selected_date):
             ax.plot([x0, x1], [y0, y1], color="black", linewidth=0.8)
             ax.text(x1, y1, label, ha="center", va="center", fontsize=8, color="black")
 
-        angle -= dur / total * 360  # 次の扇へ
-    # --- 重複排除・ソート ---
-    time_points = sorted(set(time_points))
+        angle -= dur / total * 360
 
-    # --- 区切り時間表示 ---
+    # 時間ラベルを外周に描画
     for h in sorted(set(time_points)):
-    # 誤差を吸収した上で24時扱いに
         h_rounded = round(h, 4)
+        if abs(h_rounded - 24.0) < 1e-2:
+            h_rounded = 0.0
+
         angle_h = 90 - (h_rounded / 24) * 360
-        x = 1.15 * np.cos(np.radians(angle_h))
-        y = 1.15 * np.sin(np.radians(angle_h))
-
-        if abs(h - 24.0) < 1e-2:
-            h = 0.0
-
-        angle_h = 90 - (h / 24) * 360
-        x = 1.0 * np.cos(np.radians(angle_h))
-        y = 1.0 * np.sin(np.radians(angle_h))
-
-        hour = int(h)
-        minute = int(round((h % 1) * 60))
+        x = 1.05 * np.cos(np.radians(angle_h))
+        y = 1.05 * np.sin(np.radians(angle_h))
+        hour = int(h_rounded)
+        minute = int(round((h_rounded % 1) * 60))
         label = f"{hour:02d}:{minute:02d}"
-
         ax.text(x, y, label, ha="center", va="center", fontsize=6)
 
     st.pyplot(fig)
