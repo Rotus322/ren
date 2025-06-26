@@ -5,6 +5,34 @@ from datetime import datetime, time, date
 import matplotlib_fontja
 import numpy as np
 from matplotlib.patches import ConnectionPatch
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+
+
+
+SPREADSHEET_ID = "1T-7Ue8nHolwx9KrK0vdsqMYINxdbj830NnQ1TVoka8M"  # ←変更必須！
+
+def get_worksheet():
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name('myscheduleapp-464114-a672362551fc.json', scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key(SPREADSHEET_ID)
+    worksheet = sheet.sheet1
+    return worksheet
+
+def append_schedule_to_gsheet(entries):
+    worksheet = get_worksheet()
+    for e in entries:
+        worksheet.append_row([
+            e["日時"], e["名前"], e["日付"],
+            e["開始"], e["終了"], e["内容"]
+        ])
+
+
+
+
+
 
 st.set_page_config(page_title="予定アプリ", layout="centered")
 st.title("\U0001F4C5 予定アプリ")
@@ -63,15 +91,8 @@ if st.button("提出"):
         })
 
     if new_entries:
-        new_df = pd.DataFrame(new_entries)
-        try:
-            existing = pd.read_csv("schedules.csv")
-            all_data = pd.concat([existing, new_df], ignore_index=True)
-        except FileNotFoundError:
-            all_data = new_df
-
-        all_data.to_csv("schedules.csv", index=False)
-        st.success(f"✅ {len(new_entries)} 件の予定を登録しました！")
+        append_schedule_to_gsheet(new_entries)
+        st.success(f"✅ {len(new_entries)} 件の予定を Google Sheets に保存しました！")
     else:
         st.warning("有効な予定が入力されていません。")
 
@@ -240,3 +261,4 @@ try:
             st.experimental_rerun()
 except FileNotFoundError:
     st.info("まだ予定は登録されていません。")
+    
