@@ -24,6 +24,12 @@ def get_worksheet():
     sheet = client.open_by_key(SPREADSHEET_ID)
     return sheet.sheet1
 
+def load_schedules_from_gsheet():
+    worksheet = get_worksheet()
+    records = worksheet.get_all_records()
+    df = pd.DataFrame(records)
+    return df
+    
 def append_schedule_to_gsheet(entries):
     worksheet = get_worksheet()
     for e in entries:
@@ -209,16 +215,18 @@ st.header("\U0001F4CA 円グラフで予定を比較")
 view_date = st.date_input("表示する日付を選択", value=date.today(), key="view_date")
 
 try:
-    df = pd.read_csv("schedules.csv")
+    df = load_schedules_from_gsheet()
+
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("\U0001F9D1 れん")
+        st.subheader("🧑 れん")
         plot_user_schedule(df, "れん", view_date)
     with col2:
-        st.subheader("\U0001F469 ゆみ")
+        st.subheader("👩 ゆみ")
         plot_user_schedule(df, "ゆみ", view_date)
-except FileNotFoundError:
-    st.info("まだ誰も予定を提出していません。")
+
+except Exception as e:
+    st.error(f"読み込み中にエラーが発生しました: {e}")
 
 st.header("\U0001F5D1️ 予定の削除・編集")
 try:
