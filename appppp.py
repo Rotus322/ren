@@ -247,7 +247,8 @@ try:
             delete_label = f'{row["名前"]} / {row["内容"]} ({row["開始"]}-{row["終了"]})'
             if st.button(f"🗑️ 削除：{delete_label}", key=f"delete_{i}"):
                 # 元の df の index を取得
-                original_index = df[df.eq(row).all(axis=1)].index[0]
+                original_index = int(df[df.eq(row).all(axis=1)].index[0])
+
                 delete_schedule_from_gsheet(original_index)
                 st.success("✅ 削除しました！ページを更新してください。")
                 st.stop()
